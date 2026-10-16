@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DealFinder — Price trends</title>
+<style>
+  :root {
+    --bg: #f5f4f0; --card: #ffffff; --text: #1c1c1e; --muted: #6b6b70;
+    --line: #e4e2dc; --accent: #146b3a; --accent-soft: #e3f0e8;
+    --danger: #b3372c; --warn-bg: #fdf3e0; --warn-text: #8a5b00;
+    /* validated data-viz slots (light steps) */
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    --s4: #eda100; --s5: #e87ba4;
+    --band: rgba(42,120,214,0.13);
+    --grid: #eceae4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161618; --card: #202024; --text: #ececf0; --muted: #9a9aa2;
+      --line: #34343a; --accent: #4fae74; --accent-soft: #1e3328;
+      --danger: #e2695e; --warn-bg: #33290f; --warn-text: #e5b95d;
+      /* dark steps are chosen for the dark surface, not flipped */
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --s4: #c98500; --s5: #d55181;
+      --band: rgba(57,135,229,0.20);
+      --grid: #2c2c31;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, "SF Pro Text", Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 80px; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -0.3px; }
+  h1 span { color: var(--accent); }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px;
+       color: var(--muted); margin: 0 0 12px; }
+  a { color: var(--accent); }
+  .card { background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; }
+  .muted { color: var(--muted); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 14px 16px; }
+  .kpi .v { font-size: 30px; font-weight: 600; letter-spacing: -0.5px; line-height: 1.1; }
+  .kpi .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .items { display: flex; flex-wrap: wrap; gap: 8px; }
+  .item-btn { border: 1px solid var(--line); background: var(--card); color: var(--text);
+    border-radius: 999px; padding: 6px 14px; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .item-btn.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .item-btn .n { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  .pill { display: inline-block; border-radius: 999px; padding: 1px 10px;
+    font-size: 12px; font-weight: 600; }
+  .pill.ok { background: var(--accent-soft); color: var(--accent); }
+  .pill.bad { background: var(--warn-bg); color: var(--warn-text); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; margin-bottom: 6px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px;
+    margin-right: 6px; vertical-align: middle; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px;
+       text-transform: uppercase; letter-spacing: 0.4px; }
+  .scroll { overflow-x: auto; }
+  .chartwrap { position: relative; }
+  #tip { position: absolute; pointer-events: none; background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+    font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.14); display: none; z-index: 5;
+    white-space: nowrap; }
+  .warn { background: var(--warn-bg); color: var(--warn-text);
+    border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Deal<span>Finder</span> · price trends</h1>
+    <a href="/">← back to dashboard</a>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card" style="margin-top:16px">
+    <h2>What the screening threw away</h2>
+    <div id="junk"></div>
+  </div>
+
+  <div class="card">
+    <h2>Tracked items</h2>
+    <div class="items" id="items"></div>
+  </div>
+
+  <div id="detail"></div>
+</div>
+
+<script>
+const money = v => "$" + Math.round(v).toLocaleString();
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shortDate = ts => ts.slice(5, 10).replace("-", "/");
+// when every point falls in the same day or two, a date label repeats
+// uselessly - switch to clock time so the axis actually says something
+function axisLabeller(pts) {
+  const span = new Date(pts[pts.length - 1].ts) - new Date(pts[0].ts);
+  const sameDay = pts.every(p => p.ts.slice(0, 10) === pts[0].ts.slice(0, 10));
+  if (sameDay) return p => p.ts.slice(11, 16);
+  if (span < 3 * 864e5) return p => shortDate(p.ts) + " " + p.ts.slice(11, 16);
+  return p => shortDate(p.ts);
+}
+let OVERVIEW = null, ITEMS = [], CURRENT = null;
+
+/* ---------- KPI tiles: headline numbers, not a one-bar chart ---------- */
+function renderKpis(o) {
+  const junkPct = o.fetched_total
+    ? Math.round(100 * o.junk_total / (o.junk_total + o.listings_kept)) : 0;
+  const tiles = [
+    ["items tracked", o.items_tracked, `${o.checks} price checks saved`],
+    ["listings examined", o.fetched_total.toLocaleString(), "across every search"],
+    ["kept after screening", o.listings_kept.toLocaleString(),
+     `${junkPct}% of screened listings were junk`],
+    ["deep hunts", o.hunts, `${o.finds} finds surfaced`],
+  ];
+  document.getElementById("kpis").innerHTML = tiles.map(([l, v, s]) =>
+    `<div class="kpi"><div class="l">${esc(l)}</div><div class="v">${esc(v)}</div>
+     <div class="s">${esc(s)}</div></div>`).join("");
+}
+
+/* ---------- part-to-whole: one stacked bar, direct-labelled ---------- */
+function renderJunk(o) {
+  const order = ["unrelated", "parts", "accessory", "damaged"];
+  const vars = ["--s1", "--s2", "--s3", "--s4", "--s5"];
+  const entries = [];
+  order.forEach(k => { if (o.junk[k]) entries.push([k, o.junk[k]]); });
+  Object.entries(o.junk).forEach(([k, v]) => {
+    if (!order.includes(k)) entries.push([k, v]);
+  });
+  const total = entries.reduce((a, [, v]) => a + v, 0);
+  if (!total) { document.getElementById("junk").innerHTML =
+    '<p class="muted">No screening data yet.</p>'; return; }
+  const W = 100;
+  let x = 0;
+  const segs = entries.map(([k, v], i) => {
+    const w = v / total * W, seg = `<div style="position:absolute;left:${x}%;width:${w}%;
+      top:0;bottom:0;background:var(${vars[i % 5]});
+      border-right:2px solid var(--card)"></div>`;
+    x += w;
+    return seg;
+  }).join("");
+  document.getElementById("junk").innerHTML = `
+    <div style="position:relative;height:34px;border-radius:8px;overflow:hidden;
+      background:var(--grid);margin-bottom:10px">${segs}</div>
+    <div class="legend">${entries.map(([k, v], i) =>
+      `<span><i style="background:var(${vars[i % 5]})"></i>${esc(k)}
+       <b>${v.toLocaleString()}</b>
+       <span class="muted">${Math.round(100 * v / total)}%</span></span>`).join("")}</div>
+    <p class="muted" style="font-size:12px;margin:8px 0 0">
+      ${total.toLocaleString()} listings rejected across all searches ·
+      ${o.listings_kept.toLocaleString()} kept. Every rejection is recorded per
+      check — open any saved check to audit what was tossed.</p>`;
+}
+
+/* ---------- the main trend chart ---------- */
+function lineChart(d) {
+  const pts = d.points.filter(p => p.median != null);
+  if (pts.length < 2) {
+    return `<p class="muted">Only ${pts.length} price point so far — a trend needs
+      at least two. Scheduled scans add one automatically on every run.</p>`;
+  }
+  const W = 900, H = 320, m = {t: 18, r: 92, b: 34, l: 58};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const vals = [];
+  pts.forEach(p => {
+    [p.median, p.sold, p.floor, p.p25, p.p75].forEach(v => { if (v != null) vals.push(v); });
+  });
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.12 || hi * 0.1 || 10;
+  lo = Math.max(0, lo - pad); hi = hi + pad;
+  const X = i => m.l + (pts.length === 1 ? iw / 2 : i / (pts.length - 1) * iw);
+  const Y = v => m.t + ih - (v - lo) / (hi - lo) * ih;
+
+  // y grid + ticks
+  let grid = "";
+  const ticks = 4;
+  for (let i = 0; i <= ticks; i++) {
+    const v = lo + (hi - lo) * i / ticks, y = Y(v);
+    grid += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>
+      <text x="${m.l - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${money(v)}</text>`;
+  }
+  // x labels (first, last, and a middle one if room)
+  let xlab = "";
+  const labelOf = axisLabeller(pts);
+  const idxs = pts.length > 4 ? [0, Math.floor((pts.length - 1) / 2), pts.length - 1]
+                              : pts.map((_, i) => i);
+  [...new Set(idxs)].forEach(i => {
+    xlab += `<text x="${X(i)}" y="${H - 12}" text-anchor="middle" font-size="11"
+      fill="var(--muted)">${esc(labelOf(pts[i]))}</text>`;
+  });
+  const dayNote = pts.every(p => p.ts.slice(0, 10) === pts[0].ts.slice(0, 10))
+    ? `<text x="${m.l}" y="${H - 12}" text-anchor="start" font-size="11"
+        fill="var(--muted)" opacity="0">${esc(pts[0].ts.slice(0, 10))}</text>` : "";
+
+  // p25–p75 band (context for the median line)
+  const bandPts = pts.filter(p => p.p25 != null && p.p75 != null);
+  let band = "";
+  if (bandPts.length === pts.length) {
+    const top = pts.map((p, i) => `${X(i)},${Y(p.p75)}`).join(" ");
+    const bot = pts.map((p, i) => `${X(i)},${Y(p.p25)}`).reverse().join(" ");
+    band = `<polygon points="${top} ${bot}" fill="var(--band)"/>`;
+  }
+
+  // a segment crossing a methodology change is drawn dashed, never solid
+  const brokenAfter = new Set();
+  d.breaks.forEach(b => {
+    pts.forEach((p, i) => { if (p.ts === b.after) brokenAfter.add(i); });
+  });
+  const series = [
+    {key: "median", label: "typical (median)", css: "--s1"},
+    {key: "floor", label: "deal floor", css: "--s2"},
+    {key: "sold", label: "sold median", css: "--s3"},
+  ].filter(s => pts.some(p => p[s.key] != null));
+
+  let lines = "";
+  series.forEach(s => {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i][s.key], b = pts[i + 1][s.key];
+      if (a == null || b == null) continue;
+      lines += `<line x1="${X(i)}" y1="${Y(a)}" x2="${X(i + 1)}" y2="${Y(b)}"
+        stroke="var(${s.css})" stroke-width="2" stroke-linecap="round"
+        ${brokenAfter.has(i) ? 'stroke-dasharray="5 4" opacity="0.55"' : ""}/>`;
+    }
+    pts.forEach((p, i) => {
+      if (p[s.key] == null) return;
+      lines += `<circle cx="${X(i)}" cy="${Y(p[s.key])}" r="4.5"
+        fill="var(${s.css})" stroke="var(--card)" stroke-width="2"/>`;
+    });
+    // direct label at the series end — identity never rests on color alone
+    const last = [...pts].reverse().find(p => p[s.key] != null);
+    const li = pts.lastIndexOf(last);
+    lines += `<text x="${X(li) + 10}" y="${Y(last[s.key]) + 4}" font-size="11.5"
+      fill="var(--text)">${esc(s.label)}</text>`;
+  });
+
+  // hunt markers sit on the baseline, out of the price scale
+  let hunts = "";
+  d.hunts.forEach(h => {
+    let near = 0, best = Infinity;
+    pts.forEach((p, i) => {
+      const gap = Math.abs(new Date(p.ts) - new Date(h.ts));
+      if (gap < best) { best = gap; near = i; }
+    });
+    hunts += `<polygon points="${X(near)},${H - m.b + 2} ${X(near) - 5},${H - m.b + 11} ${X(near) + 5},${H - m.b + 11}"
+      fill="var(--muted)"><title>deep hunt ${esc(h.ts.slice(0, 16))} — ${h.finds} finds</title></polygon>`;
+  });
+
+  const hover = pts.map((p, i) =>
+    `<rect x="${X(i) - iw / (pts.length * 2) - 2}" y="${m.t}"
+       width="${iw / pts.length + 4}" height="${ih}" fill="transparent"
+       data-i="${i}" class="hz"/>`).join("");
+
+  const spanNote = pts.every(p => p.ts.slice(0, 10) === pts[0].ts.slice(0, 10))
+    ? `<p class="muted" style="font-size:12px;margin:0 0 4px">all ${pts.length}
+       checks ran on ${esc(pts[0].ts.slice(0, 10))} — the axis shows clock time</p>` : "";
+  return spanNote + `<div class="legend">${series.map(s =>
+      `<span><i style="background:var(${s.css})"></i>${esc(s.label)}</span>`).join("")}
+      ${band ? '<span><i style="background:var(--band)"></i>usual range (25th–75th)</span>' : ""}
+      ${d.hunts.length ? '<span class="muted">▲ deep hunt</span>' : ""}</div>
+    <div class="chartwrap"><div id="tip"></div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:100%;height:auto" id="tchart">
+      ${grid}${band}${lines}${hunts}${xlab}
+      <line x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--line)"/>
+      <line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" stroke="var(--line)"/>
+      <line id="cross" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" stroke="var(--muted)"
+        stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+      ${hover}
+    </svg></div>`;
+}
+
+/* ---------- distribution of the latest check ---------- */
+function histChart(d) {
+  if (!d.hist.length) return "";
+  const W = 900, H = 190, m = {t: 12, r: 16, b: 30, l: 46};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = Math.max(...d.hist.map(b => b.n));
+  const bw = iw / d.hist.length;
+  const bars = d.hist.map((b, i) => {
+    const h = b.n / max * ih, x = m.l + i * bw, y = m.t + ih - h;
+    return `<rect x="${x + 1}" y="${y}" width="${bw - 3}" height="${Math.max(h, b.n ? 2 : 0)}"
+      rx="4" fill="var(--s1)" opacity="${0.45 + 0.55 * (b.n / max)}">
+      <title>${b.n} listings · ${money(b.from)}–${money(b.to)}</title></rect>`;
+  }).join("");
+  const labs = [0, Math.floor(d.hist.length / 2), d.hist.length - 1].map(i =>
+    `<text x="${m.l + i * bw + bw / 2}" y="${H - 10}" text-anchor="middle"
+      font-size="11" fill="var(--muted)">${money(d.hist[i].from)}</text>`).join("");
+  return `<h2 style="margin-top:22px">Where the prices actually sit</h2>
+    <p class="muted" style="font-size:13px;margin:-6px 0 8px">
+      ${d.hist_from.n} kept listings from the check on
+      ${esc(d.hist_from.ts.slice(0, 16).replace("T", " "))} — the long right tail is
+      why the median beats the average here.</p>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:100%;height:auto">
+      ${bars}
+      <line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" stroke="var(--line)"/>
+      <text x="${m.l - 8}" y="${m.t + 10}" text-anchor="end" font-size="11" fill="var(--muted)">${max}</text>
+      <text x="${m.l - 8}" y="${m.t + ih}" text-anchor="end" font-size="11" fill="var(--muted)">0</text>
+      ${labs}
+    </svg>`;
+}
+
+function pointTable(d) {
+  const rows = d.points.map((p, i) => {
+    const prev = d.points[i - 1];
+    const delta = prev && prev.median && p.median
+      ? Math.round(100 * (p.median / prev.median - 1)) : null;
+    return `<tr>
+      <td>${esc(p.ts.slice(0, 16).replace("T", " "))}
+        ${p.source === "scan" ? '<span class="pill ok">scan</span>' : ""}</td>
+      <td>${p.median != null ? money(p.median) : "—"}</td>
+      <td>${delta != null ? (delta > 0 ? "+" : "") + delta + "%" : "—"}</td>
+      <td>${p.p25 != null ? money(p.p25) + "–" + money(p.p75) : "—"}</td>
+      <td>${p.floor != null ? money(p.floor) : "—"}</td>
+      <td>${p.sold != null ? money(p.sold) : "—"}</td>
+      <td>${p.kept ?? "—"}</td>
+      <td>${p.fetched ?? "—"}</td>
+      <td>${p.shipping_inclusive ? "incl." : "price only"}</td>
+      <td><a href="/#check-${p.id}" onclick="localStorage.setItem('viewCheck',${p.id})">open</a></td>
+    </tr>`;
+  }).join("");
+  return `<h2 style="margin-top:22px">Every data point</h2>
+    <div class="scroll"><table>
+      <tr><th>when</th><th>typical</th><th>Δ</th><th>usual range</th><th>deal floor</th>
+          <th>sold</th><th>kept</th><th>fetched</th><th>shipping</th><th></th></tr>
+      ${rows}</table></div>
+    <p class="muted" style="font-size:12px;margin-top:8px">
+      “Deal floor” = mean of the ${d.points[0]?.floor_n ?? 5} cheapest kept listings —
+      what you could actually buy at, which moves differently from the median.
+      “Kept” is the sample size behind each number: a big swing on a small sample
+      is noise, not a market move.</p>`;
+}
+
+function renderDetail(d) {
+  const box = document.getElementById("detail");
+  if (!d) { box.innerHTML = ""; return; }
+  const chg = d.change_pct == null ? "" :
+    `<span class="pill ${d.change_pct > 0 ? "bad" : "ok"}">${d.change_pct > 0 ? "+" : ""}${d.change_pct}% typical</span>`;
+  const fchg = d.floor_change_pct == null ? "" :
+    ` <span class="pill ${d.floor_change_pct > 0 ? "bad" : "ok"}">${d.floor_change_pct > 0 ? "+" : ""}${d.floor_change_pct}% floor</span>`;
+  const warn = d.breaks.length ? `<div class="warn"><b>⚠ Not a clean trend.</b>
+    ${d.breaks.map(b => esc(b.label)).join(" · ")} — points either side of that are
+    not directly comparable, so those segments are drawn dashed.</div>` : "";
+  const latest = d.latest;
+  box.innerHTML = `<div class="card">
+    <h2>${esc(d.query)} <span style="text-transform:none">· ${esc(d.mode)}</span></h2>
+    <div style="margin:-4px 0 12px">${chg}${fchg}
+      ${latest ? `<span class="muted" style="font-size:13px">
+        · latest ${money(latest.median)} typical, floor ${money(latest.floor)},
+        ${latest.kept} listings kept</span>` : ""}</div>
+    ${warn}
+    ${lineChart(d)}
+    ${histChart(d)}
+    ${pointTable(d)}
+  </div>`;
+  wireHover(d);
+}
+
+function wireHover(d) {
+  const svg = document.getElementById("tchart");
+  if (!svg) return;
+  const tip = document.getElementById("tip"), cross = document.getElementById("cross");
+  const pts = d.points.filter(p => p.median != null);
+  svg.querySelectorAll(".hz").forEach(z => {
+    z.addEventListener("mousemove", ev => {
+      const i = +z.dataset.i, p = pts[i];
+      const r = svg.getBoundingClientRect();
+      const x = +z.getAttribute("x") + (+z.getAttribute("width")) / 2;
+      cross.setAttribute("x1", x); cross.setAttribute("x2", x);
+      cross.setAttribute("opacity", "0.6");
+      tip.style.display = "block";
+      tip.innerHTML = `<b>${esc(p.ts.slice(0, 16).replace("T", " "))}</b>
+        ${p.source === "scan" ? ' <span class="pill ok">scan</span>' : ""}<br>
+        typical <b>${money(p.median)}</b><br>
+        ${p.p25 != null ? `usual ${money(p.p25)}–${money(p.p75)}<br>` : ""}
+        ${p.floor != null ? `deal floor ${money(p.floor)}<br>` : ""}
+        ${p.sold != null ? `sold ${money(p.sold)}<br>` : ""}
+        <span class="muted">${p.kept} kept of ${p.fetched ?? "?"} fetched</span>`;
+      const px = ev.clientX - r.left;
+      tip.style.left = Math.min(Math.max(px - 60, 0), r.width - 190) + "px";
+      tip.style.top = "8px";
+    });
+  });
+  svg.addEventListener("mouseleave", () => {
+    tip.style.display = "none"; cross.setAttribute("opacity", "0");
+  });
+}
+
+async function selectItem(key) {
+  const it = ITEMS.find(i => i.key === key);
+  if (!it) return;
+  CURRENT = key;
+  document.querySelectorAll(".item-btn").forEach(b =>
+    b.classList.toggle("on", b.dataset.key === key));
+  if (it.mode === "hunt-only") {
+    document.getElementById("detail").innerHTML = `<div class="card">
+      <h2>${esc(it.query)}</h2>
+      <p class="muted">Hunted ${it.hunts.length} time${it.hunts.length > 1 ? "s" : ""},
+      but never price-checked — so there is no price series yet. Hunts judge
+      individual listings; price checks build the market picture. Run a price
+      check on this to start a trend line.</p>
+      ${it.hunts.map(h => `<div style="font-size:13px" class="muted">🔍
+        ${esc(h.ts.slice(0, 16).replace("T", " "))} — ${h.finds} finds</div>`).join("")}
+    </div>`;
+    return;
+  }
+  const d = await (await fetch("/api/trends-detail?query="
+    + encodeURIComponent(it.query) + "&mode=" + encodeURIComponent(it.mode))).json();
+  renderDetail(d);
+}
+
+async function load() {
+  OVERVIEW = await (await fetch("/api/trends-overview")).json();
+  renderKpis(OVERVIEW);
+  renderJunk(OVERVIEW);
+  ITEMS = (await (await fetch("/api/trends")).json()).items || [];
+  document.getElementById("items").innerHTML = ITEMS.map(it =>
+    `<button class="item-btn" data-key="${esc(it.key)}"
+      onclick="selectItem('${esc(it.key).replace(/'/g, "\\'")}')">
+      ${esc(it.query)}${it.mode !== "working" ? " · " + esc(it.mode) : ""}
+      <span class="n">${it.n || it.hunts.length}${it.n ? " pts" : " hunts"}</span>
+     </button>`).join("");
+  const withPoints = ITEMS.find(i => i.n > 1) || ITEMS.find(i => i.n) || ITEMS[0];
+  if (withPoints) selectItem(withPoints.key);
+}
+load();
+</script>
+</body>
+</html>

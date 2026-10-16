@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DealFinder</title>
+<style>
+  :root {
+    --bg: #f5f4f0; --card: #ffffff; --text: #1c1c1e; --muted: #6b6b70;
+    --line: #e4e2dc; --accent: #146b3a; --accent-soft: #e3f0e8;
+    --danger: #b3372c; --warn-bg: #fdf3e0; --warn-text: #8a5b00;
+    --deal-bg: #eaf5ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161618; --card: #202024; --text: #ececf0; --muted: #9a9aa2;
+      --line: #34343a; --accent: #4fae74; --accent-soft: #1e3328;
+      --danger: #e2695e; --warn-bg: #33290f; --warn-text: #e5b95d;
+      --deal-bg: #1d2c22;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, "SF Pro Text", Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 24px 16px 80px; }
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -0.3px; }
+  h1 span { color: var(--accent); }
+  .grow { flex: 1; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase;
+             letter-spacing: 0.6px; color: var(--muted); font-weight: 600; }
+  button {
+    font: inherit; border: 1px solid var(--line); background: var(--card);
+    color: var(--text); border-radius: 8px; padding: 7px 14px; cursor: pointer;
+  }
+  button:hover { border-color: var(--muted); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger-link { border: none; color: var(--danger); background: none; padding: 4px 6px; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  input, select, textarea {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .pill { display: inline-block; border-radius: 999px; padding: 1px 10px;
+          font-size: 12px; font-weight: 600; }
+  .pill.ok  { background: var(--accent-soft); color: var(--accent); }
+  .pill.bad { background: var(--warn-bg); color: var(--warn-text); }
+  .muted { color: var(--muted); }
+  .search-item { display: flex; gap: 12px; align-items: flex-start;
+                 padding: 12px 0; border-top: 1px solid var(--line); }
+  .search-item:first-of-type { border-top: none; }
+  .search-name { font-weight: 600; }
+  .search-meta { font-size: 13px; color: var(--muted); }
+  .alert-tag { color: var(--accent); font-weight: 600; font-size: 13px; }
+  .switch { position: relative; width: 42px; height: 24px; flex: none; margin-top: 2px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--line);
+            border-radius: 999px; transition: 0.15s; cursor: pointer; }
+  .slider:before { content: ""; position: absolute; height: 18px; width: 18px;
+                   left: 3px; top: 3px; background: #fff; border-radius: 50%;
+                   transition: 0.15s; }
+  .switch input:checked + .slider { background: var(--accent); }
+  .switch input:checked + .slider:before { transform: translateX(18px); }
+  .deal { background: var(--deal-bg); border-radius: 10px; padding: 10px 12px;
+          margin-bottom: 8px; }
+  .deal a { color: var(--text); text-decoration: none; font-weight: 600; }
+  .deal a:hover { text-decoration: underline; }
+  .deal .search-meta { margin-top: 2px; }
+  .price-summary { display: flex; gap: 24px; flex-wrap: wrap; margin: 12px 0; }
+  .stat b { display: block; font-size: 22px; }
+  .stat span { font-size: 12px; color: var(--muted); text-transform: uppercase;
+               letter-spacing: 0.5px; }
+  .listing { padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .listing a { color: var(--text); }
+  details.advanced { margin-top: 8px; }
+  details.advanced summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+  details.advanced .row { margin-top: 8px; }
+  pre { background: var(--bg); border-radius: 8px; padding: 12px;
+        overflow-x: auto; font-size: 12px; max-height: 320px; }
+  .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--line);
+          border-top-color: var(--accent); border-radius: 50%;
+          animation: spin 0.8s linear infinite; vertical-align: -2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .banner { border-radius: 10px; padding: 10px 14px; margin-bottom: 16px;
+            background: var(--warn-bg); color: var(--warn-text); font-size: 14px; }
+  label.small { font-size: 13px; color: var(--muted); display: flex; gap: 6px;
+                align-items: center; }
+  .chip { display: inline-block; border-radius: 14px; padding: 3px 10px;
+    margin: 3px 4px 0 0; font-size: 13px; cursor: pointer; user-select: none;
+    border: 1px solid var(--accent); background: var(--accent-soft); }
+  .chip.off { opacity: .4; text-decoration: line-through; }
+  .chip.rej { border-color: var(--warn-text); background: var(--warn-bg);
+    color: var(--warn-text); }
+  .chip.kw { cursor: default; font-size: 12px; padding: 1px 8px; }
+  .chip .x { margin-left: 6px; cursor: pointer; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Deal<span>Finder</span></h1>
+    <span id="global-state" class="pill ok">active</span>
+    <div class="grow"></div>
+    <label class="small">watching
+      <span class="switch"><input type="checkbox" id="global-toggle" checked
+        onchange="post('/api/toggle', {enabled: this.checked})"><span class="slider"></span></span>
+    </label>
+    <button class="primary" id="scan-btn" onclick="scanNow()">Scan now</button>
+  </header>
+
+  <div id="setup-banner" class="banner" style="display:none"></div>
+
+  <div class="card">
+    <h2>Price check <span class="muted" style="text-transform:none;font-weight:400">— what does it actually go for?</span></h2>
+    <div class="row">
+      <input id="pc-query" placeholder='e.g. "airpods pro 2"' style="flex:2;min-width:180px">
+      <select id="pc-cond">
+        <option value="working">working</option>
+        <option value="parts">parts/broken</option>
+        <option value="any">any condition</option>
+      </select>
+      <select id="pc-sources" title="which marketplaces this check searches">
+        <option value="">eBay + Craigslist</option>
+        <option value="ebay">eBay only</option>
+        <option value="craigslist">Craigslist only</option>
+      </select>
+      <button class="primary" id="pc-btn" onclick="priceCheck()">Check</button>
+      <button id="hunt-btn" onclick="deepHunt()"
+        title="AI casts a wide net: misspellings, bundles, lots, auctions — takes a few minutes and ~$0.25 of API credit">🔍 Deep hunt</button>
+      <select id="hunt-auctions" title="Auctions with days left often sit deceptively low and drown out real deals"
+        onchange="document.getElementById('hunt-auction-hrs').style.display = this.value === 'ending' ? '' : 'none'">
+        <option value="all">auctions: include all</option>
+        <option value="ending">auctions: ending soon only</option>
+        <option value="none">no auctions</option>
+      </select>
+      <input id="hunt-auction-hrs" type="number" min="1" max="240" value="24"
+        style="display:none;width:70px" title="only auctions ending within this many hours">
+      <select id="hunt-ai" title="which AI runs this hunt/dive - overrides the Settings default for this run only">
+        <option value="">AI: settings default</option>
+        <option value="local">AI: local (free, slow)</option>
+        <option value="api">AI: Claude API (~$0.25)</option>
+      </select> 
+    </div>
+    <div id="pc-result"></div>
+  </div>
+
+  <div class="card">
+    <h2>Add a search</h2>
+    <div class="row">
+      <input id="add-query" placeholder='search terms, e.g. "nintendo switch oled"' style="flex:2;min-width:180px">
+      <input id="add-alert" placeholder="alert at ≤ $" type="number" style="width:120px">
+      <button class="primary" onclick="addSearch()">Watch it</button>
+    </div>
+    <details class="advanced">
+      <summary>more options</summary>
+      <div class="row">
+        <input id="add-name" placeholder="label (optional)">
+        <input id="add-min" placeholder="min $" type="number" style="width:90px">
+        <input id="add-max" placeholder="max $" type="number" style="width:90px">
+        <select id="add-cond">
+          <option value="working">working</option>
+          <option value="parts">parts/broken (repair donor)</option>
+          <option value="any">any condition</option>
+        </select>
+        <select id="add-sources">
+          <option value="">eBay + Craigslist</option>
+          <option value="ebay">eBay only</option>
+          <option value="craigslist">Craigslist only</option>
+        </select>
+      </div>
+      <div class="row">
+        <input id="add-notes" placeholder='notes for the AI screen, e.g. "must include dock"' style="flex:1">
+        <label class="small"><input type="checkbox" id="add-auctions"> include eBay auctions</label>
+        <input id="add-window" placeholder="auction window in HOURS (default 24)" type="number" style="width:230px" title="Only alert on auctions ending within this many hours">
+      </div>
+      <p class="muted" style="font-size:13px;margin:8px 0 0">
+        No alert price? The automatic rule notifies at 25% below the typical price.
+      </p>
+    </details>
+    <div id="add-clarify"></div>
+  </div>
+
+  <div class="card">
+    <h2>Watching</h2>
+    <div id="searches"><p class="muted">Loading…</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Deals found <span class="muted" style="text-transform:none;font-weight:400">— last 14 days</span></h2>
+    <div id="deals"><p class="muted">Nothing yet.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Price trends <span class="muted" style="text-transform:none;font-weight:400">— every item you have checked, over time</span>
+      <a href="/trends" style="float:right;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400">full trends page →</a></h2>
+    <div id="trends"><p class="muted">Nothing tracked yet.</p></div>
+    <p class="muted" style="font-size:12px;margin-top:8px">Price checks and
+      scheduled scans both feed this. Hunts show as markers, never as price
+      points — their pools are unscreened.</p>
+  </div>
+
+  <div class="card">
+    <h2>Past price checks <span class="muted" style="text-transform:none;font-weight:400">— saved automatically; watch prices move over time</span></h2>
+    <div id="history"><p class="muted">None yet — run a price check.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Settings &amp; API keys</h2>
+    <div class="row" id="setup-pills"></div>
+    <div class="row" style="margin-top:14px">
+      <div style="flex:1;min-width:240px">
+        <label class="small" for="set-ebay-id">eBay Client ID (App ID) — free at developer.ebay.com</label>
+        <input id="set-ebay-id" style="width:100%" autocomplete="off">
+      </div>
+      <div style="flex:1;min-width:240px">
+        <label class="small" for="set-ebay-secret">eBay Client Secret (Cert ID)</label>
+        <input id="set-ebay-secret" type="password" style="width:100%" autocomplete="off">
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1;min-width:240px">
+        <label class="small" for="set-anthropic">Anthropic API key - platform.claude.com (optional when using Claude login/OAuth)</label>
+        <input id="set-anthropic" type="password" style="width:100%" autocomplete="off">
+        <label class="small" style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <input id="set-anthropic-oauth" type="checkbox">
+          Use Claude login/OAuth for local AI testing
+        </label>
+      </div>
+      <div style="min-width:140px">
+        <label class="small" for="set-marketplace">eBay region</label>
+        <select id="set-marketplace" style="width:100%">
+          <option>EBAY_US</option><option>EBAY_GB</option><option>EBAY_CA</option>
+          <option>EBAY_AU</option><option>EBAY_DE</option><option>EBAY_FR</option>
+          <option>EBAY_IT</option><option>EBAY_ES</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div style="min-width:220px">
+        <label class="small" for="set-ai-provider">AI provider (screening, verdicts, hunts)</label>
+        <select id="set-ai-provider" style="width:100%">
+          <option value="api">Claude API / OAuth — best quality</option>
+          <option value="local">Local model via Ollama — free &amp; private</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:180px">
+        <label class="small" for="set-local-model">local model (verdicts &amp; hunts)</label>
+        <input id="set-local-model" placeholder="qwen3.6:27b" style="width:100%">
+      </div>
+      <div style="flex:1;min-width:180px">
+        <label class="small" for="set-local-screen">fast screening model (optional — small model for bulk listing sorting; blank = use main model)</label>
+        <input id="set-local-screen" placeholder="e.g. qwen2.5-coder:7b" style="width:100%">
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1;min-width:160px">
+        <label class="small" for="set-cl">Craigslist city (the bit before .craigslist.org, e.g. sfbay)</label>
+        <input id="set-cl" style="width:100%">
+      </div>
+      <div style="flex:1;min-width:200px">
+        <label class="small" for="set-topic">ntfy topic (subscribe to this in the ntfy phone app — keep it secret)</label>
+        <input id="set-topic" style="width:100%">
+      </div>
+      <div style="min-width:110px">
+        <label class="small" for="set-runs">scans per day</label>
+        <input id="set-runs" type="number" min="1" max="12" style="width:100%">
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1;min-width:280px">
+        <label class="small">daily scan times — one picker per scan (change "scans per day" above to add or remove)</label>
+        <div class="row" id="set-times-boxes" style="margin-top:6px"></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div style="flex:1;min-width:280px">
+        <label class="small" for="set-github">GitHub token (for the cloud watcher — fine-grained, with Administration, Contents, Secrets, Actions &amp; Workflows read/write)</label>
+        <input id="set-github" type="password" style="width:100%" autocomplete="off">
+      </div>
+      <div style="align-self:flex-end">
+        <button id="cloud-btn" onclick="cloudSetup()">…</button>
+        <button id="cloud-sync-btn" onclick="cloudSync()" style="display:none">Sync to cloud now</button>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="primary" onclick="saveSettings()">Save settings</button>
+      <span class="muted" style="font-size:13px">Keys are stored only in config.json on this Mac. Blank fields keep their current value.</span>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="sched-btn" onclick="toggleSchedule()">…</button>
+      <button id="awake-btn" title="Prevents system sleep ONLY while plugged into power (display still sleeps; battery unaffected). A closed MacBook lid still sleeps — leave it open when plugged in."
+        onclick="post('/api/awake', {enable: !state.setup.awake})">…</button>
+      <button onclick="post('/api/test-notify', {}).then(r => r && alert('Test push sent to topic: ' + r.topic))">Send test notification</button>
+    </div>
+    <details class="advanced"><summary>activity log</summary><pre id="log">…</pre></details>
+  </div>
+</div>
+
+<script>
+let state = null;
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g,
+    c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function money(v) { return "$" + Math.round(v).toLocaleString(); }
+
+async function post(path, body) {
+  try {
+    const resp = await fetch(path, {method: "POST",
+      headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+    const data = await resp.json();
+    if (data.error) { alert(data.error); return null; }
+    refresh();
+    return data;
+  } catch (e) { alert("Could not reach the DealFinder server."); return null; }
+}
+
+
+function trendArrow(cur, prev) {
+  if (cur == null || prev == null) return "";
+  const pct = (cur - prev) / prev * 100;
+  if (Math.abs(pct) < 3) return ' <span class="muted">→</span>';
+  return pct > 0
+    ? ` <span style="color:var(--danger)">▲ ${pct.toFixed(0)}%</span>`
+    : ` <span style="color:var(--accent)">▼ ${Math.abs(pct).toFixed(0)}%</span>`;
+}
+
+async function loadHistory() {
+  try {
+    const resp = await fetch("/api/price-history");
+    const rows = (await resp.json()).checks || [];
+    const box = document.getElementById("history");
+    if (!rows.length) {
+      box.innerHTML = '<p class="muted">None yet — run a price check.</p>';
+      return;
+    }
+    box.innerHTML = rows.map(c => c.mode === "hunt" ? `
+      <div class="listing">
+        <span class="muted">${esc(c.ts.slice(0, 10))}</span> ·
+        <b>${esc(c.query)}</b> <span class="pill ok">🔍 deep hunt</span>
+        · ${c.kept} find${c.kept === 1 ? "" : "s"}
+        <button style="padding:2px 10px;font-size:13px" onclick="viewCheck(${c.id})">view</button>
+      </div>` : `
+      <div class="listing">
+        <span class="muted">${esc(c.ts.slice(0, 10))}</span> ·
+        <b>${esc(c.query)}</b>${c.mode !== "working" ? ' <span class="pill bad">' + esc(c.mode) + "</span>" : ""}
+        · listed ${c.listed != null ? money(c.listed) + trendArrow(c.listed, c.prev_listed) : "—"}
+        · sold ${c.sold != null ? money(c.sold) + trendArrow(c.sold, c.prev_sold) : "—"}
+        · ${c.kept} kept
+        <button style="padding:2px 10px;font-size:13px" onclick="viewCheck(${c.id})">view</button>
+      </div>`).join("");
+  } catch (e) { /* server briefly down during restarts */ }
+}
+
+async function viewCheck(id) {
+  const resp = await fetch("/api/price-history?id=" + id);
+  const data = await resp.json();
+  if (data.error) { alert(data.error); return; }
+  document.getElementById("pc-query").value = data.query;
+  const diveBtn = data.mode === "hunt" && !data.result.dived
+    ? ` <button style="padding:2px 10px;font-size:13px" onclick="huntDive(${id})"
+        title="Re-grade every find with its full seller description — catches buried problems and hidden gems (~$0.10 of API credit)">🔎 Deep dive these finds</button>`
+    : (data.result.dived ? ' <span class="pill ok">deep-dived</span>' : "");
+  const sellBtn = data.mode !== "hunt"
+    ? ` <button style="padding:2px 10px;font-size:13px" onclick="sellAdvice(${id})"
+        title="What should I list this at? Computes from this check's own competition — free, no API">💰 Sell price</button>`
+    : "";
+  const droppedNote = (data.result.dive_dropped || []).length
+    ? `<p class="muted" style="font-size:13px">Dive dropped ${data.result.dive_dropped.length}:
+       ${data.result.dive_dropped.map(d => esc(d.title.slice(0, 40)) + " (" + esc(d.reason.slice(0, 60)) + ")").join(" · ")}</p>` : "";
+  document.getElementById("pc-result").innerHTML =
+    `<p class="muted" style="font-size:13px">Saved ${data.mode === "hunt" ? "deep hunt" : "check"} from ${esc(data.ts.replace("T", " "))} — no new API cost.${diveBtn}${sellBtn}</p>`
+    + droppedNote
+    + (data.mode === "hunt" ? renderHuntResult(data.result)
+                            : renderPriceResult(data.query, data.result));
+  window.scrollTo({top: 0, behavior: "smooth"});
+}
+
+async function sellAdvice(id, fee, ship) {
+  const qs = "/api/sell-advice?id=" + id
+    + (fee != null ? "&fee=" + fee : "") + (ship != null ? "&ship=" + ship : "");
+  const r = await (await fetch(qs)).json();
+  const box = document.getElementById("sell-panel") || (() => {
+    const d = document.createElement("div");
+    d.id = "sell-panel";
+    document.getElementById("pc-result").prepend(d);
+    return d;
+  })();
+  if (r.error) { box.innerHTML = `<p class="muted">${esc(r.error)}</p>`; return; }
+  const row = t => `
+    <tr><td><b>${esc(t.name)}</b><br><span class="muted" style="font-size:12px">${esc(t.blurb)}</span></td>
+      <td style="font-size:17px"><b>${money(t.price)}</b></td>
+      <td>${money(t.net)}<br><span class="muted" style="font-size:12px">after ${money(t.fees)} fees${t.ship_cost ? " + " + money(t.ship_cost) + " ship" : ""}</span></td>
+      <td>${t.undercuts} of ${t.of}<br><span class="muted" style="font-size:12px">${t.undercut_pct}% of the board</span></td></tr>`;
+  box.innerHTML = `<div style="background:var(--accent-soft);border-radius:10px;
+      padding:12px 14px;margin-bottom:12px">
+    <b>💰 What to sell at — ${esc(r.query)}</b>
+    <p class="muted" style="font-size:13px;margin:4px 0 8px">
+      Anchored on ${esc(r.anchor_basis)} → <b>${money(r.anchor)}</b>.
+      ${r.n} active listings are your competition (asks ${money(r.ask_p25)}–${money(r.ask_p75)}, median ${money(r.ask_median)}).
+      ${r.have_sold ? "" : "<b>No sold data in this check</b> — asking prices run high, so this leans conservative."}</p>
+    <table><tr><th>strategy</th><th>list at</th><th>you keep</th><th>undercuts</th></tr>
+      ${r.tiers.map(row).join("")}</table>
+    <div class="row" style="margin-top:8px;align-items:center">
+      <span class="muted" style="font-size:12px">fee %</span>
+      <input id="sell-fee" type="number" step="0.25" value="${r.fee_pct}" style="width:70px">
+      <span class="muted" style="font-size:12px">your shipping cost</span>
+      <input id="sell-ship" type="number" step="1" value="${r.ship_cost}" style="width:70px">
+      <button onclick="sellAdvice(${id}, document.getElementById('sell-fee').value, document.getElementById('sell-ship').value)">Recalculate</button>
+    </div>
+    <details style="margin-top:8px"><summary>Who you're competing with (cheapest ${r.competition.length})</summary>
+      ${r.competition.map(c => `<div class="listing" style="font-size:13px">${money(c.price)} ·
+        <a href="${esc(c.url)}" target="_blank">${esc(c.title)}</a></div>`).join("")}</details>
+    <ul class="muted" style="font-size:12px;margin:8px 0 0;padding-left:18px">
+      ${r.caveats.map(c => `<li>${esc(c)}</li>`).join("")}</ul>
+  </div>`;
+  box.scrollIntoView({behavior: "smooth", block: "nearest"});
+}
+
+async function huntDive(id) {
+  const out = document.getElementById("pc-result");
+  out.insertAdjacentHTML("afterbegin",
+    '<p class="muted" id="dive-spin"><span class="spin"></span> Deep diving — fetching every description, re-grading each find…</p>');
+  const r = await post("/api/hunt-dive",
+    {id: id, ai: document.getElementById("hunt-ai")?.value || null});
+  if (!r) { document.getElementById("dive-spin")?.remove(); return; }
+  viewCheck(id);
+}
+
+function sparkline(points) {
+  const vals = points.filter(p => p.listed != null).map(p => p.listed);
+  if (vals.length < 2) return '<span class="muted" style="font-size:12px">need 2+ checks</span>';
+  const w = 90, h = 22, lo = Math.min(...vals), hi = Math.max(...vals);
+  const span = (hi - lo) || 1;
+  const pts = vals.map((v, i) =>
+    `${(i / (vals.length - 1) * (w - 2) + 1).toFixed(1)},${(h - 1 - (v - lo) / span * (h - 2)).toFixed(1)}`).join(" ");
+  const rising = vals[vals.length - 1] > vals[0];
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="vertical-align:middle">
+    <polyline points="${pts}" fill="none" stroke="${rising ? "var(--danger)" : "var(--accent)"}" stroke-width="1.5"/>
+  </svg>`;
+}
+
+async function loadTrends() {
+  try {
+    const items = (await (await fetch("/api/trends")).json()).items || [];
+    const box = document.getElementById("trends");
+    if (!items.length) {
+      box.innerHTML = '<p class="muted">Nothing tracked yet — run a price check.</p>';
+      return;
+    }
+    box.innerHTML = items.map((it, i) => {
+      const chg = it.change_pct == null ? ""
+        : ` <span class="pill ${it.change_pct > 0 ? "bad" : "ok"}">${it.change_pct > 0 ? "+" : ""}${it.change_pct}%</span>`;
+      const warn = it.breaks.length
+        ? ` <span class="pill bad" title="${esc(it.breaks.join("; "))}">⚠ not comparable</span>` : "";
+      const huntNote = it.hunts.length
+        ? ` <span class="muted" style="font-size:12px">· ${it.hunts.length} hunt${it.hunts.length > 1 ? "s" : ""}</span>` : "";
+      return `<div class="listing">
+        <b>${esc(it.query)}</b>
+        ${it.mode !== "working" ? '<span class="pill bad">' + esc(it.mode) + "</span>" : ""}
+        <span class="muted">· ${it.n} point${it.n === 1 ? "" : "s"}</span>
+        ${it.latest != null ? " · latest " + money(it.latest) : ""}${chg}${warn}${huntNote}
+        ${sparkline(it.points)}
+        ${it.n || it.hunts.length ? `<button style="padding:2px 10px;font-size:13px" onclick="toggleTrend(${i})">detail</button>` : ""}
+        <div id="trend-d-${i}" style="display:none;margin-top:6px"></div>
+      </div>`;
+    }).join("");
+    window._trendItems = items;
+  } catch (e) { /* server restarting */ }
+}
+
+function toggleTrend(i) {
+  const box = document.getElementById("trend-d-" + i);
+  const it = (window._trendItems || [])[i];
+  if (!it) return;
+  if (box.style.display !== "none") { box.style.display = "none"; return; }
+  box.style.display = "";
+  const rows = it.points.map((p, n) => {
+    const prev = it.points[n - 1];
+    const brk = prev ? (p.shipping_inclusive !== prev.shipping_inclusive) : false;
+    return `<div style="font-size:13px">
+      ${esc(p.ts.replace("T", " ").slice(0, 16))} ·
+      ${p.listed != null ? "<b>" + money(p.listed) + "</b>" : "—"}
+      ${p.p25 != null && p.p75 != null ? ` <span class="muted">(usual ${money(p.p25)}–${money(p.p75)})</span>` : ""}
+      <span class="muted">· ${p.kept} kept · ${esc(p.source)}${p.shipping_inclusive ? "" : " · price only, no shipping"}</span>
+      <button style="padding:1px 8px;font-size:12px" onclick="viewCheck(${p.id})">view</button>
+      ${brk ? '<span class="pill bad">method changed here</span>' : ""}
+    </div>`;
+  }).join("");
+  const hunts = it.hunts.map(h => `<div style="font-size:13px" class="muted">
+      ${esc(h.ts.replace("T", " ").slice(0, 16))} · 🔍 deep hunt, ${h.finds} finds
+      <button style="padding:1px 8px;font-size:12px" onclick="viewCheck(${h.id})">view</button>
+    </div>`).join("");
+  box.innerHTML =
+    (it.breaks.length ? `<p class="muted" style="font-size:13px">⚠ ${it.breaks.map(esc).join(" · ")} — points either side of that are not directly comparable.</p>` : "")
+    + rows + hunts;
+}
+
+window.addEventListener("load", () => {
+  const want = localStorage.getItem("viewCheck");
+  if (want) { localStorage.removeItem("viewCheck"); setTimeout(() => viewCheck(+want), 400); }
+});
+
+async function refresh() {
+  const resp = await fetch("/api/state");
+  state = await resp.json();
+  render();
+  loadHistory();
+  loadTrends();
+  const logResp = await fetch("/api/log");
+  document.getElementById("log").textContent =
+    (await logResp.json()).log || "(no activity yet)";
+}
+
+function render() {
+  const s = state;
+  document.getElementById("global-toggle").checked = !s.paused;
+  const gs = document.getElementById("global-state");
+  gs.textContent = s.paused ? "paused" : "active";
+  gs.className = "pill " + (s.paused ? "bad" : "ok");
+  const scanBtn = document.getElementById("scan-btn");
+  scanBtn.disabled = s.scan_running;
+  scanBtn.innerHTML = s.scan_running ? '<span class="spin"></span> scanning…' : "Scan now";
+
+  // setup banner + pills
+  const missing = [];
+  if (!s.setup.ebay) missing.push("eBay API keys");
+  if (!s.setup.ai_ok) missing.push(s.setup.ai_label);
+  if (!s.setup.craigslist_ok) missing.push("Craigslist city");
+  const banner = document.getElementById("setup-banner");
+  if (missing.length) {
+    banner.style.display = "";
+    banner.textContent = "Setup incomplete: " + missing.join(", ") +
+      " - open Settings to finish setup.";
+  } else banner.style.display = "none";
+  document.getElementById("setup-pills").innerHTML = [
+    ["eBay API", s.setup.ebay],
+    [s.setup.ai_label, s.setup.ai_ok],
+    ["Craigslist: " + (s.setup.craigslist_ok ? s.setup.craigslist : "not set"), s.setup.craigslist_ok],
+    ["Phone alerts: " + s.setup.ntfy_topic, !!s.setup.ntfy_topic],
+    [s.setup.schedule
+       ? "scans at " + ((s.settings || {}).run_times || s.runs_per_day + "/day, spread 9:00–21:00")
+       : "automatic runs OFF", s.setup.schedule],
+    [(s.cloud || {}).enabled
+       ? "cloud watcher: " + s.cloud.repo + " (runs even when this Mac is off)"
+       : "cloud watcher off", (s.cloud || {}).enabled],
+  ].map(([label, ok]) =>
+    `<span class="pill ${ok ? "ok" : "bad"}">${esc(label)}</span>`).join(" ");
+  document.getElementById("sched-btn").textContent =
+    s.setup.schedule ? "Turn off automatic runs" : "Turn on automatic runs";
+  document.getElementById("awake-btn").textContent = s.setup.awake
+    ? "Keep-awake: ON (plugged in = scans always run)"
+    : "Keep Mac awake for scans (while plugged in)";
+
+  // settings fields: placeholders show what's saved; typing overrides on Save
+  const st = s.settings || {};
+  const setField = (id, value, tail) => {
+    const el = document.getElementById(id);
+    if (tail !== undefined) {
+      el.placeholder = tail ? "configured (…" + tail + ")" : "not set";
+    } else if (el !== document.activeElement && !el.value && value) {
+      el.value = value;
+    }
+  };
+  setField("set-ebay-id", null, st.ebay_client_id_tail);
+  setField("set-ebay-secret", null, st.ebay_client_secret_tail);
+  setField("set-anthropic", null, st.anthropic_key_tail);
+  document.getElementById("set-anthropic-oauth").checked =
+    !!st.anthropic_prefer_oauth;
+  setField("set-github", null, st.github_token_tail);
+  const cloud = s.cloud || {};
+  document.getElementById("cloud-btn").textContent = cloud.enabled
+    ? "Cloud watcher: ON — disable" : "Set up cloud watcher (GitHub)";
+  document.getElementById("cloud-sync-btn").style.display =
+    cloud.enabled ? "" : "none";
+  setField("set-cl", st.craigslist_site === "CHANGE_ME" ? "" : st.craigslist_site);
+  setField("set-topic", st.ntfy_topic);
+  const provEl = document.getElementById("set-ai-provider");
+  if (provEl !== document.activeElement && st.ai_provider) provEl.value = st.ai_provider;
+  setField("set-local-model", st.local_model);
+  setField("set-local-screen", st.local_screen_model);
+  if (!timesDirty) {
+    const saved = (st.run_times || "").split(",").map(t => t.trim())
+      .filter(Boolean).map(padTime);
+    const values = saved.length ? saved : autoSpread(st.runs_per_day || 4);
+    const runsEl = document.getElementById("set-runs");
+    if (runsEl !== document.activeElement) runsEl.value = values.length;
+    buildTimeBoxes(values);
+  }
+  const mk = document.getElementById("set-marketplace");
+  if (mk !== document.activeElement && st.marketplace) mk.value = st.marketplace;
+
+  // searches
+  const box = document.getElementById("searches");
+  if (!s.searches.length) {
+    box.innerHTML = '<p class="muted">Nothing yet — add a search above.</p>';
+  } else {
+    box.innerHTML = s.searches.map(x => {
+      const meta = [];
+      if (x.query !== x.name) meta.push("“" + esc(x.query) + "”");
+      const lo = x.min_price, hi = x.max_price;
+      if (lo != null || hi != null)
+        meta.push((lo != null ? money(lo) : "$0") + "–" + (hi != null ? money(hi) : "any"));
+      meta.push((x.sources || ["ebay", "craigslist"]).join(" + "));
+      if (x.condition === "parts") meta.push("PARTS/BROKEN only");
+      if (x.condition === "any") meta.push("any condition");
+      if (x.include_auctions)
+        meta.push("auctions ending within " + (x.auction_max_hours || 24) + " hours");
+      if ((x.queries || []).length > 1)
+        meta.push("AI also searches: " + x.queries.slice(1).map(esc).join(" · "));
+      if (x.notes) meta.push("notes: " + esc(x.notes));
+      const alert = x.alert_under != null
+        ? `<span class="alert-tag">alert ≤ ${money(x.alert_under)}</span>`
+        : `<span class="muted" style="font-size:13px">auto: 25% below typical</span>`;
+      const n = JSON.stringify(x.name);
+      return `<div class="search-item">
+        <span class="switch"><input type="checkbox" ${x.enabled !== false ? "checked" : ""}
+          onchange='post("/api/toggle", {name: ${esc(n)}, enabled: this.checked})'>
+          <span class="slider"></span></span>
+        <div class="grow">
+          <div class="search-name">${esc(x.name)} &nbsp;${alert}</div>
+          <div class="search-meta">${meta.join(" · ")}</div>
+        </div>
+        <button onclick='editAlert(${esc(n)}, ${x.alert_under != null ? x.alert_under : "null"})'>Alert…</button>
+        <button class="danger-link" onclick='if (confirm("Remove this search?")) post("/api/remove", {name: ${esc(n)}})'>remove</button>
+      </div>`;
+    }).join("");
+  }
+
+  // deals
+  const dealsBox = document.getElementById("deals");
+  dealsBox.innerHTML = s.deals.length ? s.deals.map(d => `
+    <div class="deal">
+      <a href="${esc(d.url)}" target="_blank">${money(d.price)} — ${esc(d.title)}</a>
+      <div class="search-meta">${esc(d.search)} · ${esc(d.when.replace("T", " "))}</div>
+    </div>`).join("")
+    : '<p class="muted">Nothing yet. Deals show up here and as phone notifications.</p>';
+}
+
+function editAlert(name, current) {
+  const v = prompt(
+    'Notify when "' + name + '" appears at or under… (blank = back to the automatic rule)',
+    current != null ? current : "");
+  if (v === null) return;
+  post("/api/set", {name: name, alert_under: v.trim() === "" ? null : parseFloat(v)});
+}
+
+function addSearch(mode) {
+  const q = document.getElementById("add-query").value.trim();
+  if (!q) { alert("Enter search terms first."); return; }
+  const srcs = document.getElementById("add-sources").value;
+  const payload = {
+    query: q,
+    name: document.getElementById("add-name").value.trim(),
+    alert_under: document.getElementById("add-alert").value,
+    min_price: document.getElementById("add-min").value,
+    max_price: document.getElementById("add-max").value,
+    notes: document.getElementById("add-notes").value.trim(),
+    condition: document.getElementById("add-cond").value,
+    sources: srcs ? [srcs] : null,
+    include_auctions: document.getElementById("add-auctions").checked,
+    auction_max_hours: document.getElementById("add-window").value,
+  };
+  if (mode === true && currentProfile) payload.profile = collectProfile();
+  if (mode === "skip") payload.skip_profile = true;
+  post("/api/add", payload).then(r => {
+    if (!r) return;
+    if (r.profile_draft) {
+      currentProfile = r.profile_draft;
+      profileCtx = {query: q, notes: payload.notes};
+      profileCard("add-clarify", "Watch it", "addSearch(true)", "addSearch('skip')");
+      return;
+    }
+    document.getElementById("add-clarify").innerHTML = "";
+    ["add-query","add-name","add-alert","add-min","add-max","add-notes","add-window"]
+      .forEach(id => document.getElementById(id).value = "");
+    alert("Watching it." + (r.variant_info ? " " + r.variant_info : ""));
+  });
+}
+
+
+
+function renderPriceResult(q, r) {
+    const dropped = Object.entries(r.dropped || {})
+      .map(([k, v]) => v + " " + k).join(", ");
+    let html = "";
+    if (r.ai === "off")
+      html += `<p><span class="pill bad">AI screening OFF</span>
+        <span class="muted" style="font-size:13px">no working AI backend —
+        check the AI provider in Settings; results below are keyword-filtered
+        only, so accessories and wrong models slip through</span></p>`;
+    if (r.ai === "on" && r.unscreened > 0)
+      html += `<p><span class="pill bad">${r.unscreened} unscreened</span>
+        <span class="muted" style="font-size:13px">the AI returned no verdict
+        for these even after retry — they're kept but unvetted</span></p>`;
+    if (r.variant_info)
+      html += `<p class="muted" style="font-size:13px">ℹ️ ${esc(r.variant_info)}</p>`;
+    if ((r.queries || []).length > 1)
+      html += `<p class="muted" style="font-size:13px">AI also searched:
+        ${r.queries.slice(1).map(esc).join(" · ")}</p>`;
+    html += `<p class="muted" style="font-size:13px">fetched ${r.fetched},
+      kept ${r.kept} after screening${dropped ? " (dropped: " + esc(dropped) + ")" : ""}</p>`;
+    const rows = [["ebay_listed", "eBay — listed"],
+                  ["ebay_sold", "eBay — SOLD (what they really go for)"],
+                  ["craigslist_listed", "Craigslist — listed"]];
+    html += rows.map(([key, label]) => {
+      const sp = (r.spreads || {})[key];
+      if (!sp) return "";
+      const st = sp.stats, cur = esc(sp.currency || "$");
+      const body = st
+        ? `<b>${cur}${Math.round(st.p25).toLocaleString()}–${cur}${Math.round(st.p75).toLocaleString()}</b>
+           <span class="muted">usual · typical ${cur}${Math.round(st.median).toLocaleString()}
+           · full ${cur}${Math.round(st.low).toLocaleString()}–${cur}${Math.round(st.high).toLocaleString()}
+           · ${st.n} listings${sp.note ? " · " + esc(sp.note) : ""}</span>`
+        : `<span class="muted">${esc(sp.note || "not enough listings")}</span>`;
+      return `<div class="listing"><b>${esc(label)}</b><br>${body}</div>`;
+    }).join("");
+    if (r.verdict) html += `<div class="deal" style="margin-top:12px">
+      <b>AI verdict:</b> under <b>${money(r.verdict.good_price)}</b> is a good deal
+      · under <b>${money(r.verdict.great_price)}</b> jump on it
+      <div class="search-meta">${esc(r.verdict.note)}</div></div>`;
+    if (!r.kept) html += '<p class="muted">No active listings matched.</p>';
+    const listingRow = l => `
+      <div class="listing">${money(l.price)}${shipNote(l)} · <a href="${esc(l.url)}" target="_blank">${esc(l.title)}</a>
+      <span class="muted">(${esc(l.source)})</span></div>`;
+    const all = r.listings || [];
+    html += all.slice(0, 10).map(listingRow).join("");
+    if (all.length > 10) {
+      const shown = all.slice(10, 300);
+      html += `<details class="advanced" style="margin-top:8px">
+        <summary>Show all ${all.length} listings (cheapest first)</summary>
+        <div style="max-height:420px;overflow-y:auto;margin-top:6px">
+          ${shown.map(listingRow).join("")}
+          ${all.length > 300 ? `<p class="muted" style="font-size:13px">…and ${all.length - 300} more above ${money(all[299].price)} — narrow with a max price if you need those.</p>` : ""}
+        </div></details>`;
+    }
+    const rejects = r.rejected || [];
+    if (rejects.length) {
+      html += `<details class="advanced" style="margin-top:8px">
+        <summary>Rejected by screening: ${rejects.length} — check nothing good got tossed</summary>
+        <div style="max-height:420px;overflow-y:auto;margin-top:6px">
+          ${rejects.map(l => `
+            <div class="listing"><span class="pill bad">${esc(l.category)}</span>
+            ${money(l.price)} · <a href="${esc(l.url)}" target="_blank">${esc(l.title)}</a>
+            <span class="muted">(${esc(l.source)} — ${esc(l.reason)})</span></div>`).join("")}
+        </div></details>`;
+    }
+    if (r.kept) html += `<div class="row" style="margin-top:12px">
+      <button class="primary" onclick='watchFromPrice(${JSON.stringify(q)},
+        ${r.verdict ? r.verdict.good_price : "null"})'>Watch this — set my alert price</button></div>`;
+    return html;
+}
+
+async function priceCheck(mode) {
+  const q = document.getElementById("pc-query").value.trim();
+  if (!q) { alert("Enter search terms first."); return; }
+  const btn = document.getElementById("pc-btn");
+  const out = document.getElementById("pc-result");
+  btn.disabled = true;
+  let running = '<p class="muted"><span class="spin"></span> Drafting a search profile\u2026</p>';
+  if (mode === true && currentProfile) {
+    const nRej = activeRejects().length;
+    const nExc = (currentProfile.exclude || []).filter(e => e.enabled).length;
+    running = '<p class="muted"><span class="spin"></span> Fetching and screening \u2014 ' +
+      nExc + ' variants excluded \u00b7 ' + nRej + ' auto-reject words\u2026</p>';
+  } else if (mode === "skip") {
+    running = '<p class="muted"><span class="spin"></span> Fetching and screening (no profile)\u2026</p>';
+  }
+  out.innerHTML = running;
+  try {
+    const srcSel = document.getElementById("pc-sources").value;
+    const payload = {
+      query: q,
+      condition: document.getElementById("pc-cond").value,
+      sources: srcSel ? [srcSel] : null,
+    };
+    if (mode === true && currentProfile) payload.profile = collectProfile();
+    if (mode === "skip") payload.skip_profile = true;
+    const resp = await fetch("/api/price", {method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)});
+    const r = await resp.json();
+    if (r.error) { out.innerHTML = `<p class="muted">${esc(r.error)}</p>`; return; }
+    if (r.profile_draft) {
+      currentProfile = r.profile_draft;
+      profileCtx = {query: q, notes: ""};
+      out.innerHTML = "";
+      profileCard("pc-result", "Run the check", "priceCheck(true)", "priceCheck('skip')");
+      return;
+    }
+    lastProfile = r.profile || null;
+    out.innerHTML = renderPriceResult(q, r);
+
+  } finally { btn.disabled = false; }
+}
+
+
+function watchFromPrice(q, suggested) {
+  const v = prompt('Notify when "' + q + '" appears at or under\u2026'
+    + (suggested != null ? " (AI suggests " + Math.round(suggested) + ")" : ""),
+    suggested != null ? Math.round(suggested) : "");
+  if (v === null) return;
+  const wSrc = document.getElementById("pc-sources").value;
+  const payload = {query: q, alert_under: v.trim() === "" ? null : v,
+    condition: document.getElementById("pc-cond").value,
+    sources: wSrc ? [wSrc] : null};
+  if (lastProfile) payload.profile = lastProfile;
+  else payload.skip_profile = true;   // the check already ran without one
+  post("/api/add", payload).then(r => {
+    if (!r) return;
+    let msg = "Watching it.";
+    if (r.variant_info) msg += " " + r.variant_info;
+    if ((r.queries || []).length > 1)
+      msg += "\nSearching: " + r.queries.join(" \u00b7 ");
+    alert(msg);
+  });
+}
+
+// ---- search profile: the always-on review card shown before money is spent
+let currentProfile = null;  // {comment, include:[{name,enabled}], exclude:[{name,markers,enabled}], manual_rejects, guidance}
+let profileCtx = null;      // {query, notes} the draft was made for
+let profileTarget = null;   // where + how the card continues
+let lastProfile = null;     // profile used by the last completed price check
+
+function activeRejects() {
+  const p = currentProfile, out = [];
+  if (!p) return out;
+  const push = m => { if (m && !out.some(x => x.toLowerCase() === m.toLowerCase())) out.push(m); };
+  (p.exclude || []).forEach(e => { if (e.enabled) (e.markers || []).forEach(push); });
+  (p.manual_rejects || []).forEach(push);
+  return out;
+}
+
+function collectProfile() {
+  const g = document.getElementById("pf-guidance");
+  if (g && currentProfile) currentProfile.guidance = g.value.trim();
+  return currentProfile;
+}
+
+function profileCard(divId, label, js, skipJs) {
+  profileTarget = {div: divId, label: label, js: js, skipJs: skipJs};
+  renderProfileCard();
+}
+
+function renderProfileCard() {
+  const p = currentProfile, t = profileTarget;
+  if (!p || !t) return;
+  const inc = (p.include || []).map((v, i) =>
+    `<span class="chip ${v.enabled ? "" : "off"}" onclick="toggleInc(${i})">${esc(v.name)}</span>`).join("")
+    || '<span class="muted" style="font-size:13px">everything matching the query</span>';
+  const exc = (p.exclude || []).map((v, i) =>
+    `<span class="chip rej ${v.enabled ? "" : "off"}" onclick="toggleExc(${i})"
+      title="rejects titles containing: ${esc((v.markers || []).join(", "))}">\ud83d\udeab ${esc(v.name)}</span>`).join("")
+    || '<span class="muted" style="font-size:13px">none suggested</span>';
+  const manual = new Set((p.manual_rejects || []).map(m => m.toLowerCase()));
+  const kws = activeRejects().map(m => {
+    const mi = (p.manual_rejects || []).findIndex(x => x.toLowerCase() === m.toLowerCase());
+    return `<span class="chip rej kw">${esc(m)}${mi >= 0
+      ? `<span class="x" onclick="rmReject(${mi})">\u2715</span>` : ""}</span>`;
+  }).join("") || '<span class="muted" style="font-size:13px">none yet</span>';
+  document.getElementById(t.div).innerHTML =
+    `<div style="background:var(--warn-bg);border-radius:10px;padding:12px 14px;margin-top:10px">
+    <b>Search profile \u2014 check this before the paid run</b><br>
+    <span class="muted" style="font-size:13px">${esc(p.comment || "")}</span>
+    <div style="margin-top:8px"><span class="muted" style="font-size:12px">LOOKING FOR (tap to toggle)</span><br>${inc}</div>
+    <div style="margin-top:6px"><span class="muted" style="font-size:12px">EXCLUDING (tap to toggle \u00b7 hover for title words)</span><br>${exc}</div>
+    <div style="margin-top:6px"><span class="muted" style="font-size:12px">AUTO-REJECT \u2014 titles containing any of these are tossed for free, before AI</span><br>
+      ${kws}
+      <span class="row" style="margin-top:4px">
+        <input id="pf-newrej" placeholder="add a reject word\u2026" style="max-width:180px"
+          onkeydown="if(event.key==='Enter')addReject()">
+        <button onclick="addReject()">Add</button></span></div>
+    <div style="margin-top:8px"><input id="pf-guidance" style="width:100%"
+      placeholder='extra instructions for the AI screener, e.g. "ONLY chrome bodies"'
+      value="${esc(p.guidance || "")}"></div>
+    <div class="row" style="margin-top:8px">
+      <input id="pf-feedback" style="flex:1;min-width:200px"
+        placeholder='not right? tell the AI, e.g. "also exclude the LT-1 version"'
+        onkeydown="if(event.key==='Enter')refineProfile()">
+      <button onclick="refineProfile()">Refine \u21bb</button></div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="dryPreview()">Dry preview \u2014 free</button>
+      <button class="primary" onclick="${t.js}">${esc(t.label)}</button>
+      ${t.skipJs ? `<button onclick="${t.skipJs}">Run without profile</button>` : ""}</div>
+    <div id="pf-dry"></div></div>`;
+}
+
+function toggleInc(i) { collectProfile(); currentProfile.include[i].enabled = !currentProfile.include[i].enabled; renderProfileCard(); }
+function toggleExc(i) { collectProfile(); currentProfile.exclude[i].enabled = !currentProfile.exclude[i].enabled; renderProfileCard(); }
+function rmReject(i) { collectProfile(); currentProfile.manual_rejects.splice(i, 1); renderProfileCard(); }
+function addReject() {
+  const el = document.getElementById("pf-newrej");
+  const v = el.value.trim();
+  if (!v) return;
+  collectProfile();
+  currentProfile.manual_rejects = currentProfile.manual_rejects || [];
+  if (!currentProfile.manual_rejects.some(x => x.toLowerCase() === v.toLowerCase()))
+    currentProfile.manual_rejects.push(v);
+  renderProfileCard();
+}
+
+function refineProfile() {
+  const fb = document.getElementById("pf-feedback").value.trim();
+  if (!fb) { alert("Tell the AI what to change first."); return; }
+  const prior = JSON.parse(JSON.stringify(collectProfile()));
+  const keepManual = prior.manual_rejects || [], keepGuide = prior.guidance || "";
+  document.getElementById("pf-dry").innerHTML =
+    '<p class="muted"><span class="spin"></span> Redrafting the profile\u2026</p>';
+  post("/api/profile-refine", {query: profileCtx.query, notes: profileCtx.notes,
+    feedback: fb, prior: prior}).then(r => {
+    if (!r) { document.getElementById("pf-dry").innerHTML = ""; return; }
+    currentProfile = r.profile_draft;
+    currentProfile.manual_rejects = keepManual;
+    currentProfile.guidance = keepGuide;
+    renderProfileCard();
+  });
+}
+
+function dryPreview() {
+  const box = document.getElementById("pf-dry");
+  box.innerHTML = '<p class="muted"><span class="spin"></span> Pulling live titles \u2014 free, no AI\u2026</p>';
+  const dpSrc = document.getElementById("pc-sources")?.value;
+  post("/api/dry-preview", {query: profileCtx.query, profile: collectProfile(),
+    sources: dpSrc ? [dpSrc] : null}).then(r => {
+    if (!r) { box.innerHTML = ""; return; }
+    const row = l => `<div class="listing" style="font-size:13px">${money(l.price)} \u00b7 ${esc(l.title)}
+      ${l.why ? `<span class="pill bad">${esc(l.why)}</span>` : ""}</div>`;
+    box.innerHTML = `<p style="margin:10px 0 4px;font-size:14px"><b>${r.fetched} live titles:</b>
+        ${r.killed} killed by the free layer \u00b7 ${r.kept} would continue to AI screening</p>
+      <details open><summary>Cheapest killed (${r.killed})</summary>${(r.killed_sample || []).map(row).join("")}</details>
+      <details><summary>Cheapest kept (${r.kept})</summary>${(r.kept_sample || []).map(row).join("")}</details>`;
+  });
+}
+
+
+function shipNote(l) {
+  // prices already include shipping; this just shows the breakdown
+  if (l.ship > 0) return ` <span class="muted" style="font-size:12px">(incl ${money(l.ship)} ship)</span>`;
+  if (l.ship === null && l.source === "ebay")
+    return ' <span class="muted" style="font-size:12px">(+ship?)</span>';
+  return "";
+}
+
+function renderHuntResult(r) {
+  const finds = r.finds || [];
+  const nNew = finds.filter(f => !f.first_seen).length;
+  let html = `<p class="muted" style="font-size:13px">🔍 Deep hunt · hunted with:
+    ${(r.queries || []).map(esc).join(" · ")}<br>
+    ${r.fetched} listings examined · typical clean price ${esc(r.typical)}
+    ${finds.length ? ` · ${nNew} new find${nNew === 1 ? "" : "s"}, ${finds.length - nNew} seen before` : ""}</p>`;
+  if (!finds.length) {
+    html += "<p class='muted'>Nothing exciting out there right now — try again tomorrow.</p>";
+  }
+  html += finds.map(f => `
+    <div class="deal"${f.first_seen ? ' style="opacity:.65"' : ""}>
+      ${f.first_seen ? "" : '<span class="pill ok">NEW</span> '}<span class="pill ${f.interest === "strong" ? "ok" : "bad"}">${f.interest === "strong" ? "STRONG" : "maybe"}</span>
+      <a href="${esc(f.url)}" target="_blank">${money(f.price)}${shipNote(f)} — ${esc(f.title)}</a>
+      <span class="muted">(${esc(f.source)}${f.auction_hours_left != null ? ", auction ends in " + Math.round(f.auction_hours_left) + "h" : ""}${f.first_seen ? ", first seen " + esc(f.first_seen.slice(0, 10)) : ""})</span>
+      <div class="search-meta">${esc(f.reason)}</div>
+    </div>`).join("");
+  const all = r.listings || [];
+  if (all.length) {
+    const row = l => `
+      <div class="listing">${money(l.price)}${shipNote(l)} · <a href="${esc(l.url)}" target="_blank">${esc(l.title)}</a>
+      <span class="muted">(${esc(l.source)})</span></div>`;
+    html += `<p style="margin:12px 0 4px"><b>Everything the hunt saw</b>
+      <span class="muted" style="font-size:13px">— unscreened, cheapest first, parse away</span></p>`;
+    html += all.slice(0, 10).map(row).join("");
+    if (all.length > 10) {
+      html += `<details class="advanced" style="margin-top:8px">
+        <summary>Show all ${all.length} listings</summary>
+        <div style="max-height:420px;overflow-y:auto;margin-top:6px">
+          ${all.slice(10).map(row).join("")}
+        </div></details>`;
+    }
+  }
+  return html;
+}
+
+async function deepHunt() {
+  const q = document.getElementById("pc-query").value.trim();
+  if (!q) { alert("Enter search terms first."); return; }
+  const huntAi = document.getElementById("hunt-ai").value;
+  if (!huntAi && !state?.setup?.ai_ok) {
+    alert("Deep Hunt needs a working AI backend - add an API key in Settings, or pick 'AI: local' next to the hunt button.");
+    return;
+  }
+  if (!confirm("Deep Hunt casts a wide net for \"" + q + "\": misspellings, " +
+      "bundles, lots, and auctions, then a stronger AI reads every title " +
+      "looking for hidden value.\n\n" +
+      (huntAi === "local"
+        ? "Runs on your local Ollama models - free, but slower and it works the Mac hard."
+        : "Takes a few minutes and uses roughly $0.25 of API credit.") +
+      " Run it?")) return;
+  const btn = document.getElementById("hunt-btn");
+  const out = document.getElementById("pc-result");
+  btn.disabled = true;
+  out.innerHTML = '<p class="muted"><span class="spin"></span> Deep hunting… ' +
+    'planning queries, fetching listings, reading every title. ' +
+    'This takes a few minutes — leave this tab open.</p>';
+  try {
+    const resp = await fetch("/api/hunt", {method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({query: q,
+        condition: document.getElementById("pc-cond").value,
+        auction_mode: document.getElementById("hunt-auctions").value,
+        auction_max_hours: parseFloat(document.getElementById("hunt-auction-hrs").value) || 24,
+        ai: document.getElementById("hunt-ai").value || null})});
+    const r = await resp.json();
+    if (r.error) { out.innerHTML = `<p class="muted">${esc(r.error)}</p>`; return; }
+    out.innerHTML = renderHuntResult(r);
+  } catch (e) {
+    out.innerHTML = '<p class="muted">Hunt failed — is the server still running?</p>';
+  } finally { btn.disabled = false; }
+}
+
+let timesDirty = false;
+
+function padTime(t) {
+  const [h, m] = t.split(":");
+  return h.padStart(2, "0") + ":" + (m || "00").padStart(2, "0");
+}
+
+function autoSpread(n) {
+  n = Math.max(1, Math.min(12, n || 4));
+  if (n === 1) return ["09:00"];
+  return Array.from({length: n}, (_, i) =>
+    String(Math.round(9 + i * 12 / (n - 1))).padStart(2, "0") + ":00");
+}
+
+function buildTimeBoxes(values) {
+  const box = document.getElementById("set-times-boxes");
+  box.innerHTML = values.map(v =>
+    `<input type="time" value="${esc(v)}" style="width:110px">`).join("");
+  box.querySelectorAll("input").forEach(el =>
+    el.addEventListener("change", () => timesDirty = true));
+}
+
+function currentTimes() {
+  return [...document.querySelectorAll("#set-times-boxes input")]
+    .map(el => el.value).filter(Boolean);
+}
+
+document.getElementById("set-runs").addEventListener("input", () => {
+  const n = Math.max(1, Math.min(12,
+    parseInt(document.getElementById("set-runs").value) || 4));
+  const existing = currentTimes();
+  const defaults = autoSpread(n);
+  buildTimeBoxes(Array.from({length: n}, (_, i) => existing[i] || defaults[i]));
+  timesDirty = true;
+});
+
+async function cloudSetup() {
+  if (state?.cloud?.enabled) {
+    if (!confirm("Disable the cloud watcher? Scheduled eBay scanning moves " +
+        "back to this Mac. (The GitHub repo stays but goes dormant.)")) return;
+    await post("/api/cloud-setup", {disable: true});
+    return;
+  }
+  if (!state?.settings?.github_token_tail) {
+    alert("Paste your GitHub token in the field to the left and click " +
+          "Save settings first.");
+    return;
+  }
+  const btn = document.getElementById("cloud-btn");
+  btn.disabled = true;
+  btn.textContent = "Setting up on GitHub… (~30s)";
+  try {
+    const r = await post("/api/cloud-setup", {});
+    if (r) alert("Cloud watcher is live!\n\nRepo: " + r.repo +
+      "\nA test run was started — watch it at:\n" + r.url +
+      "\n\nYour Mac now covers Craigslist; GitHub covers eBay, " +
+      "even when this Mac is off.");
+  } finally { btn.disabled = false; refresh(); }
+}
+
+async function cloudSync() {
+  const r = await post("/api/cloud-sync", {});
+  if (r) alert("Searches, schedule, and keys synced to the cloud watcher.");
+}
+
+function saveSettings() {
+  const times = currentTimes();
+  post("/api/settings", {
+    run_times: times.join(", "),
+    runs_per_day: String(times.length || 4),
+    github_token: document.getElementById("set-github").value,
+    ai_provider: document.getElementById("set-ai-provider").value,
+    local_model: document.getElementById("set-local-model").value.trim(),
+    local_screen_model: document.getElementById("set-local-screen").value.trim(),
+    ebay_client_id: document.getElementById("set-ebay-id").value,
+    ebay_client_secret: document.getElementById("set-ebay-secret").value,
+    anthropic_api_key: document.getElementById("set-anthropic").value,
+    anthropic_prefer_oauth:
+      document.getElementById("set-anthropic-oauth").checked,
+    marketplace: document.getElementById("set-marketplace").value,
+    craigslist_site: document.getElementById("set-cl").value,
+    ntfy_topic: document.getElementById("set-topic").value,
+  }).then(r => {
+    if (r) {
+      ["set-ebay-id", "set-ebay-secret", "set-anthropic", "set-github"]
+        .forEach(id => document.getElementById(id).value = "");
+      timesDirty = false;
+      alert("Settings saved.");
+    }
+  });
+}
+
+async function scanNow() {
+  await post("/api/scan", {});
+  setTimeout(refresh, 2000);
+}
+
+async function toggleSchedule() {
+  const r = await post("/api/schedule", {install: !state.setup.schedule});
+  if (r && r.message) alert(r.message);
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

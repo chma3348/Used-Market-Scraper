@@ -1,0 +1,17 @@
+# Local secrets — NEVER commit. The cloud runner reads credentials from
+# GitHub Secrets; cloud/searches.json carries the searches without keys.
+config.json
+sold_cache.json
+
+# Local state and build artefacts
+.venv/
+.bin/
+*.db
+*.log
+__pycache__/
+*.pyc
+.server-code-stamp
+cloud/work/
+node_modules/
+dist/
+.DS_Store

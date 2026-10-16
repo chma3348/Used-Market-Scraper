@@ -1,0 +1,28 @@
+#!/bin/bash
+# DealFinder launcher: works from wherever the DealFinder folder lives.
+SELF="$(cd "$(dirname "$0")" && pwd -P)"      # -P resolves symlinked launches
+DIR="$(cd "$SELF/../../.." && pwd -P)"
+URL="http://127.0.0.1:8377"
+
+# Rebuild the Python environment if it's missing OR broken (packages gone).
+# The app can get launched under Rosetta, where uname -m lies (x86_64).
+# hw.optional.arm64 reports the real hardware even under translation.
+if [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = "1" ]; then
+  ARCH="arch -arm64"
+else
+  ARCH=""
+fi
+if ! $ARCH "$DIR/.venv/bin/python3" -c "import anthropic, nacl" >/dev/null 2>&1; then
+  echo "[launcher] venv missing or broken - rebuilding" >> "$DIR/server.log"
+  $ARCH /usr/bin/python3 -m venv "$DIR/.venv" >> "$DIR/server.log" 2>&1
+  $ARCH "$DIR/.venv/bin/python3" -m pip install --quiet anthropic pynacl >> "$DIR/server.log" 2>&1
+fi
+
+if ! curl -s --max-time 2 "$URL/api/ping" >/dev/null 2>&1; then
+  nohup $ARCH "$DIR/.venv/bin/python3" -u "$DIR/server.py" >> "$DIR/server.log" 2>&1 &
+  for i in $(seq 1 40); do
+    curl -s --max-time 1 "$URL/api/ping" >/dev/null 2>&1 && break
+    sleep 0.25
+  done
+fi
+open "$URL"

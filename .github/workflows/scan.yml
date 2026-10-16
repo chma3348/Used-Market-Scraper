@@ -1,0 +1,67 @@
+name: DealFinder scan
+
+# Times are UTC. These four are 09:00 / 13:00 / 17:00 / 21:00 Denver time
+# (UTC-6). GitHub only runs schedules from the default branch, and may delay
+# a run by several minutes under load.
+on:
+  schedule:
+    - cron: "0 15 * * *"
+    - cron: "0 19 * * *"
+    - cron: "0 23 * * *"
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: dealfinder-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write     # commit seen.json + history back
+      id-token: write     # required by claude-code-action
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Phase 1: fetch + free keyword filtering. No AI, no cost.
+      - name: Fetch candidates
+        id: fetch
+        env:
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+        run: python3 cloud/fetch.py
+
+      # Phase 2: the screening, done by Claude Code against the subscription
+      # token rather than API billing. Skipped when phase 1 found nothing.
+      - name: Screen with Claude
+        if: steps.fetch.outputs.candidates != '0'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: "/scan-screen"
+          claude_args: |
+            --model claude-sonnet-5
+            --max-turns 30
+            --allowedTools "Read,Write,Edit,Glob,Grep"
+
+      # Phase 3: notify + record. No AI, no cost.
+      - name: Notify and record
+        if: steps.fetch.outputs.candidates != '0'
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python3 cloud/report.py
+
+      - name: Commit results
+        if: steps.fetch.outputs.candidates != '0'
+        run: |
+          git config user.name "dealfinder-bot"
+          git config user.email "noreply@github.com"
+          git add cloud/seen.json history/ || true
+          git diff --staged --quiet || git commit -m "scan: $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
