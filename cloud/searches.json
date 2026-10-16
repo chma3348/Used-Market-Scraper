@@ -15,7 +15,7 @@
    "query": "canon canonet giii ql17",
    "enabled": false,
    "alert_under": 70.0,
-   "notes": "ONLY the 40mm f/1.7 GIII. Edited inline.",
+   "notes": "endpoint test",
    "queries": [
     "canon canonet giii ql17",
     "canonet giii ql17 40mm",
