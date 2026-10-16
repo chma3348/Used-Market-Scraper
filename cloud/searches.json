@@ -25,6 +25,19 @@
    ],
    "max_price": 400.0,
    "auction_max_hours": 24.0
+  },
+  {
+   "name": "nikon f3",
+   "query": "nikon f3",
+   "enabled": true,
+   "alert_under": 100.0,
+   "queries": [
+    "nikon f3",
+    "Nikon F3 camera",
+    "Nikon F-3",
+    "Nikon FM2 F3",
+    "F3 35mm film camera"
+   ]
   }
  ]
 }
