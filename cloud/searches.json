@@ -14,7 +14,7 @@
    "name": "Canonet GIII QL17",
    "query": "canon canonet giii ql17",
    "enabled": false,
-   "alert_under": 85.0,
+   "alert_under": 95.0,
    "notes": "endpoint test",
    "queries": [
     "canon canonet giii ql17",
