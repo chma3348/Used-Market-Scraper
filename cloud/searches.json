@@ -51,6 +51,18 @@
     "zzztest watch",
     "test-watch"
    ]
+  },
+  {
+   "name": "zzz-1792183829602",
+   "query": "zzz-1792183829602",
+   "enabled": true,
+   "alert_under": 44.0,
+   "queries": [
+    "zzz-1792183829602",
+    "1792183829602",
+    "zzz 1792183829602",
+    "zzz1792183829602"
+   ]
   }
  ]
 }
