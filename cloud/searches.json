@@ -14,7 +14,7 @@
    "name": "Canonet GIII QL17",
    "query": "canon canonet giii ql17",
    "enabled": false,
-   "alert_under": 70.0,
+   "alert_under": 85.0,
    "notes": "endpoint test",
    "queries": [
     "canon canonet giii ql17",
@@ -24,8 +24,7 @@
     "canon canonet giii"
    ],
    "max_price": 400.0,
-   "auction_max_hours": 24.0,
-   "condition": "any"
+   "auction_max_hours": 24.0
   }
  ]
 }
