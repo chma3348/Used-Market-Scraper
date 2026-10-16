@@ -13,7 +13,7 @@
   {
    "name": "Canonet GIII QL17",
    "query": "canon canonet giii ql17",
-   "enabled": true,
+   "enabled": false,
    "alert_under": 120.0,
    "notes": "ONLY the 40mm f/1.7 GIII. Not the 45mm original QL17, not QL19/QL25, not Canonet 28. Skip parts, flashes, cases and repair listings.",
    "sources": [
