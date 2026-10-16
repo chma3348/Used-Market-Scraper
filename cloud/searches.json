@@ -9,5 +9,23 @@
  "history_days": 14,
  "auction_max_hours": 24,
  "paused": false,
- "searches": []
+ "searches": [
+  {
+   "name": "Canonet GIII QL17",
+   "query": "canon canonet giii ql17",
+   "enabled": true,
+   "alert_under": 120.0,
+   "notes": "ONLY the 40mm f/1.7 GIII. Not the 45mm original QL17, not QL19/QL25, not Canonet 28. Skip parts, flashes, cases and repair listings.",
+   "sources": [
+    "ebay"
+   ],
+   "queries": [
+    "canon canonet giii ql17",
+    "canonet giii ql17 40mm",
+    "canon giii 40mm f1.7",
+    "canonet ql17 40mm f/1.7",
+    "canon canonet giii"
+   ]
+  }
+ ]
 }
