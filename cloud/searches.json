@@ -14,8 +14,8 @@
    "name": "Canonet GIII QL17",
    "query": "canon canonet giii ql17",
    "enabled": false,
-   "alert_under": 95.0,
-   "notes": "endpoint test",
+   "alert_under": 80.0,
+   "notes": "ONLY the 40mm f/1.7 GIII. Not the 45mm original, not QL19/QL25.",
    "queries": [
     "canon canonet giii ql17",
     "canonet giii ql17 40mm",
