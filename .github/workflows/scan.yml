@@ -6,11 +6,8 @@ name: DealFinder scan
 on:
   schedule:
     - cron: "0 15 * * *"
-    - cron: "0 17 * * *"
     - cron: "0 19 * * *"
-    - cron: "0 21 * * *"
     - cron: "0 23 * * *"
-    - cron: "0 1 * * *"
     - cron: "0 3 * * *"
   workflow_dispatch:
 
