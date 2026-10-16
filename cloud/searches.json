@@ -38,6 +38,19 @@
     "Nikon FM2 F3",
     "F3 35mm film camera"
    ]
+  },
+  {
+   "name": "zzz-test-watch",
+   "query": "zzz-test-watch",
+   "enabled": true,
+   "alert_under": 33.0,
+   "queries": [
+    "zzz-test-watch",
+    "test watch zzz",
+    "zzz test",
+    "zzztest watch",
+    "test-watch"
+   ]
   }
  ]
 }
