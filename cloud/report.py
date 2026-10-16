@@ -29,6 +29,23 @@ HISTORY = os.path.join(ROOT, "history")
 SEEN_CAP = 5000
 
 
+def _first_run_of_day(name, stamp):
+    """True once per calendar day per search, so 'daily' really is daily."""
+    path = os.path.join(HERE, "heartbeat.json")
+    try:
+        with open(path) as f:
+            doc = json.load(f)
+    except (OSError, ValueError):
+        doc = {}
+    today = stamp[:10]
+    if doc.get(name) == today:
+        return False
+    doc[name] = today
+    with open(path, "w") as f:
+        json.dump(doc, f, indent=1)
+    return True
+
+
 def main():
     with open(os.path.join(WORK, "candidates.json")) as f:
         cand = json.load(f)
@@ -56,7 +73,8 @@ def main():
             pass
     seen = list(seen_doc.get("ids", []))
 
-    sent, lines = 0, [f"# Scheduled scan - {stamp}", ""]
+    sent, heartbeats = 0, 0
+    lines = [f"# Scheduled scan - {stamp}", ""]
     for entry in results.get("searches", []):
         name = entry.get("name", "")
         src = by_name.get(name)
@@ -76,16 +94,41 @@ def main():
             lines.append(f"  {l['url']}")
             lines.append(f"  {reason}")
             if topic:
-                body = f"${l['price']:,.0f} on {l['source']}"
+                # A phone notification is a glance, not a report. The full
+                # reasoning already lives in the history file below.
+                short = reason.split(" [screened")[0].strip()
+                if len(short) > 100:
+                    cut = short[:100].rsplit(" ", 1)[0]
+                    short = cut + "…"
+                body = f"${l['price']:,.0f}"
                 if l.get("auction") and l.get("ends"):
-                    body += f" - auction ends {l['ends'][:16]}"
-                body += f"\n{reason}"
+                    body += f" · auction ends {l['ends'][11:16]} {l['ends'][5:10]}"
+                if short:
+                    body += f" — {short}"
                 try:
-                    notify.send(topic, l["title"][:80], body,
+                    notify.send(topic, l["title"][:70], body,
                                 click_url=l["url"])
                     sent += 1
                 except Exception as e:
                     print(f"[report] notify failed: {e}")
+        # A patient search can go weeks without a hit. When asked, send a
+        # quiet low-priority ping with the cheapest thing seen, so the user
+        # knows it is alive and learns whether their target is realistic.
+        hb = src.get("heartbeat")
+        if topic and not deals and hb in ("scan", "daily"):
+            if hb != "daily" or _first_run_of_day(name, stamp):
+                prices = [l["price"] for l in src["listings"]]
+                body = (f"{len(src['listings'])} seen, cheapest "
+                        f"${min(prices):,.0f}" if prices
+                        else "nothing matched the filters")
+                if src.get("alert_under"):
+                    body += f" · your alert is ${src['alert_under']:,.0f}"
+                try:
+                    notify.send(topic, f"{name} — still watching", body,
+                                priority="low", tags="eyes")
+                    heartbeats += 1
+                except Exception as e:
+                    print(f"[report] heartbeat failed: {e}")
         # everything screened this run is 'seen', deal or not - otherwise the
         # same rejects would be re-screened (and re-paid for) every scan
         seen.extend(l["id"] for l in src["listings"])
@@ -100,7 +143,7 @@ def main():
     slug = re.sub(r"[^a-z0-9]+", "-", stamp.lower())[:16].strip("-")
     with open(os.path.join(HISTORY, f"{slug}_cloud-scan.md"), "w") as f:
         f.write("\n".join(lines) + "\n")
-    print(f"[report] {sent} notification(s) sent, "
+    print(f"[report] {sent} deal alert(s), {heartbeats} heartbeat(s), "
           f"{len(seen_doc['ids'])} ids remembered")
     return 0
 

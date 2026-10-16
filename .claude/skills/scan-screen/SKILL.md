@@ -24,12 +24,17 @@ judgement call that keyword matching cannot make.
       "name": "<copy the search name exactly>",
       "note": "<one sentence on what this market looks like right now>",
       "deals": [
-        {"i": 7, "reason": "<one concrete sentence: what it is and why the price is good>"}
+        {"i": 7, "reason": "<ONE short clause, under 90 characters — this is read on a phone lock screen>"}
       ]
     }
   ]
 }
 ```
+
+Keep `reason` short. It becomes a push notification, so it must read at a
+glance: `"40mm GIII, $45 under the going rate"` — not a paragraph. Put the
+number and the one fact that matters. The full market picture goes in `note`,
+which is written to the report rather than pushed.
 
 `i` is the listing's index **from candidates.json**. Never invent an index,
 never use a marketplace id, and never include an index you did not see.
