@@ -37,45 +37,8 @@
     "Nikon F-3",
     "Nikon FM2 F3",
     "F3 35mm film camera"
-   ]
-  },
-  {
-   "name": "zzz-test-watch",
-   "query": "zzz-test-watch",
-   "enabled": true,
-   "alert_under": 33.0,
-   "queries": [
-    "zzz-test-watch",
-    "test watch zzz",
-    "zzz test",
-    "zzztest watch",
-    "test-watch"
-   ]
-  },
-  {
-   "name": "zzz-1792183829602",
-   "query": "zzz-1792183829602",
-   "enabled": true,
-   "alert_under": 44.0,
-   "queries": [
-    "zzz-1792183829602",
-    "1792183829602",
-    "zzz 1792183829602",
-    "zzz1792183829602"
-   ]
-  },
-  {
-   "name": "zzz-1792183849788",
-   "query": "zzz-1792183849788",
-   "enabled": true,
-   "alert_under": 44.0,
-   "queries": [
-    "zzz-1792183849788",
-    "1792183849788",
-    "zzz 1792183849788",
-    "zzz-1792",
-    "zzz1792183849788"
-   ]
+   ],
+   "heartbeat": "daily"
   }
  ]
 }
