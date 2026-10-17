@@ -30,7 +30,7 @@
    "name": "nikon f3",
    "query": "nikon f3",
    "enabled": true,
-   "alert_under": 100.0,
+   "alert_under": 275.0,
    "queries": [
     "nikon f3",
     "Nikon F3 camera",
@@ -38,7 +38,8 @@
     "Nikon FM2 F3",
     "F3 35mm film camera"
    ],
-   "heartbeat": "daily"
+   "heartbeat": "daily",
+   "auction_max_hours": 24.0
   }
  ]
 }
