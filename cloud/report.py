@@ -117,15 +117,26 @@ def main():
         hb = src.get("heartbeat")
         if topic and not deals and hb in ("scan", "daily"):
             if hb != "daily" or _first_run_of_day(name, stamp):
-                prices = [l["price"] for l in src["listings"]]
-                body = (f"{len(src['listings'])} seen, cheapest "
-                        f"${min(prices):,.0f}" if prices
-                        else "nothing matched the filters")
-                if src.get("alert_under"):
-                    body += f" · your alert is ${src['alert_under']:,.0f}"
+                # Report the cheapest GENUINE item, not the cheapest
+                # candidate: the raw pool is full of brochures and caps, and
+                # quoting those as "cheapest" is worse than saying nothing.
+                cheap = entry.get("cheapest") or {}
+                cl = listings.get(cheap.get("i")) if cheap else None
+                n = len(src["listings"])
+                if cl:
+                    body = f"cheapest real one is ${cl['price']:,.0f}"
+                    if cheap.get("what"):
+                        body += f" — {cheap['what']}"
+                    if src.get("alert_under"):
+                        body += f" · you want under ${src['alert_under']:,.0f}"
+                    body += f"\n({n} listings checked)"
+                else:
+                    body = (f"{n} listings checked, none were actually a match"
+                            if n else "nothing matched the filters")
                 try:
-                    notify.send(topic, f"{name} — still watching", body,
-                                priority="low", tags="eyes")
+                    notify.send(topic, f"{name} — still looking", body,
+                                priority="low", tags="eyes",
+                                click_url=cl["url"] if cl else None)
                     heartbeats += 1
                 except Exception as e:
                     print(f"[report] heartbeat failed: {e}")

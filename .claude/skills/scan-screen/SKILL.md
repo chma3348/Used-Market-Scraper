@@ -23,6 +23,7 @@ judgement call that keyword matching cannot make.
     {
       "name": "<copy the search name exactly>",
       "note": "<one sentence on what this market looks like right now>",
+      "cheapest": {"i": 12, "what": "<3-6 words, e.g. 'F3 HP body, meter works'>"},
       "deals": [
         {"i": 7, "reason": "<ONE short clause, under 90 characters — this is read on a phone lock screen>"}
       ]
@@ -30,6 +31,13 @@ judgement call that keyword matching cannot make.
   ]
 }
 ```
+
+`cheapest` is the cheapest listing that is **genuinely the item being
+searched for** — the real thing, even when it is nowhere near a deal. It is
+what gets reported when there are no deals, so the buyer learns what the item
+actually costs today. Set it to `null` when not one listing in the batch is
+the real item; "we looked at 60 and none were even a Nikon F3" is useful and
+true, and is far better than quoting the price of a brochure.
 
 Keep `reason` short. It becomes a push notification, so it must read at a
 glance: `"40mm GIII, $45 under the going rate"` — not a paragraph. Put the
