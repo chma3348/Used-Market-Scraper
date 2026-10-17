@@ -19,6 +19,30 @@
       --deal-bg: #1d2c22;
     }
   }
+  /* view tabs */
+  .tabs { display: flex; gap: 4px; align-items: center; margin: 0 0 18px;
+    border-bottom: 1px solid var(--line); padding-bottom: 0; flex-wrap: wrap; }
+  .tab { appearance: none; border: 0; background: none; color: var(--muted);
+    font: inherit; font-size: 14px; padding: 9px 14px; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    border-radius: 8px 8px 0 0; transition: color .15s, background .15s; }
+  .tab:hover { color: var(--text); background: var(--card); }
+  .tab[aria-current="true"] { color: var(--accent); border-bottom-color: var(--accent);
+    font-weight: 600; }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .view { display: none; }
+  .view.on { display: block; }
+  /* one-line status strip so you never hunt a card for app state */
+  #statusbar { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px;
+    color: var(--muted); margin: -6px 0 16px; align-items: center; }
+  #statusbar b { color: var(--text); font-weight: 600; }
+  #statusbar .dot { width: 7px; height: 7px; border-radius: 50%;
+    display: inline-block; margin-right: 5px; vertical-align: 1px; }
+  #statusbar .dot.ok { background: var(--accent); }
+  #statusbar .dot.off { background: var(--muted); opacity: .5; }
+  #statusbar .dot.bad { background: var(--danger); }
+  @media (prefers-reduced-motion: reduce) { .tab { transition: none; } }
+
   * { box-sizing: border-box; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
@@ -57,10 +81,75 @@
   .search-item { display: flex; gap: 12px; align-items: flex-start;
                  padding: 12px 0; border-top: 1px solid var(--line); }
   .search-item:first-of-type { border-top: none; }
+  .cmdbar { display: flex; gap: 10px; align-items: stretch; margin-bottom: 10px; }
+  .cmdbar input { flex: 1; font-size: 17px; padding: 12px 14px; border-radius: 10px; }
+  .cmdbar button { padding: 0 20px; font-size: 15px; white-space: nowrap; }
+  .cmdopts { gap: 8px; align-items: center; }
+  .huntopts { position: relative; }
+  .huntopts > summary { list-style: none; cursor: pointer; font-size: 13px;
+    color: var(--muted); padding: 7px 10px; border-radius: 8px; user-select: none; }
+  .huntopts > summary::-webkit-details-marker { display: none; }
+  .huntopts > summary::after { content: " ▾"; }
+  .huntopts > summary:hover { color: var(--text); background: var(--bg); }
+  .huntopts[open] > summary { color: var(--text); }
+  .huntopts .pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; width: 250px; box-shadow: 0 14px 34px rgba(0,0,0,.16); }
+  .huntopts .pop select, .huntopts .pop input { width: 100%; }
+  .strip { border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 14px; background: var(--bg); }
+  .strip-main { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .strip-sub { font-size: 13px; color: var(--muted); margin-top: 7px; }
+  .statechip { font-weight: 600; font-size: 14px; }
+  .statechip.off { color: var(--muted); }
+  .strip .dot { width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px; }
+  .strip .dot.ok { background: var(--accent); }
+  .strip .dot.off { background: var(--muted); opacity: .55; }
+  .strip-flash { animation: flash 1.4s ease-out; }
+  @keyframes flash { 0%,100% { box-shadow: none; }
+    15% { box-shadow: 0 0 0 3px var(--accent-soft); border-color: var(--accent); } }
+  @media (prefers-reduced-motion: reduce) { .strip-flash { animation: none; } }
+  .empty { padding: 4px 0 2px; max-width: 62ch; }
+  .empty p { margin: 0 0 6px; }
+  /* Deep hunt and Scan now spend real time or money; they should not look
+     identical to a neutral button, and remove should not look safe. */
+  #hunt-btn::before { content: ""; }
+  #hunt-btn, #cloud-card .primary { position: relative; }
+  .danger-link { background: none; border: 0; color: var(--danger);
+    cursor: pointer; font: inherit; font-size: 13px; padding: 6px 8px;
+    border-radius: 6px; }
+  .danger-link:hover { background: var(--warn-bg); }
+  button:focus-visible, select:focus-visible, input:focus-visible,
+  .tab:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; }
+  .reshead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    padding: 10px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  .ghost { background: none; border: 0; color: var(--muted); cursor: pointer;
+    font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 6px; }
+  .ghost:hover { color: var(--text); background: var(--bg); }
+  #toast { position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 12px);
+    background: var(--text); color: var(--bg); padding: 11px 18px; border-radius: 10px;
+    font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.22); z-index: 60;
+    opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s;
+    max-width: min(560px, 90vw); }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+  .search-row { border-top: 1px solid var(--line); }
+  .search-row:first-child { border-top: none; }
+  .search-row .search-item { border-top: none; }
+  .search-edit { padding: 2px 0 16px 54px; display: grid; gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .search-edit .full { grid-column: 1 / -1; }
+  .search-edit label.small { display: block; margin-bottom: 3px; }
+  .search-edit input, .search-edit select, .search-edit textarea { width: 100%; }
+  .search-edit textarea { min-height: 54px; resize: vertical; font: inherit; }
+  @media (max-width: 560px) { .search-edit { padding-left: 0; } }
   .search-name { font-weight: 600; }
   .search-meta { font-size: 13px; color: var(--muted); }
   .alert-tag { color: var(--accent); font-weight: 600; font-size: 13px; }
-  .switch { position: relative; width: 42px; height: 24px; flex: none; margin-top: 2px; }
+  .switch { position: relative; width: 42px; height: 24px; flex: none;
+    margin-top: 2px; cursor: pointer; display: inline-block; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; inset: 0; background: var(--line);
             border-radius: 999px; transition: 0.15s; cursor: pointer; }
@@ -104,13 +193,14 @@
 </style>
 </head>
 <body>
+<div id="toast" role="status" aria-live="polite"></div>
 <div class="wrap">
   <header>
     <h1>Deal<span>Finder</span></h1>
     <span id="global-state" class="pill ok">active</span>
     <div class="grow"></div>
-    <label class="small">watching
-      <span class="switch"><input type="checkbox" id="global-toggle" checked
+    <label class="small" title="Pause or resume all local scanning">watching
+      <span class="switch" style="display:inline-block"><input type="checkbox" id="global-toggle" checked
         onchange="post('/api/toggle', {enabled: this.checked})"><span class="slider"></span></span>
     </label>
     <button class="primary" id="scan-btn" onclick="scanNow()">Scan now</button>
@@ -118,190 +208,227 @@
 
   <div id="setup-banner" class="banner" style="display:none"></div>
 
-  <div class="card">
-    <h2>Price check <span class="muted" style="text-transform:none;font-weight:400">— what does it actually go for?</span></h2>
-    <div class="row">
-      <input id="pc-query" placeholder='e.g. "airpods pro 2"' style="flex:2;min-width:180px">
-      <select id="pc-cond">
-        <option value="working">working</option>
-        <option value="parts">parts/broken</option>
-        <option value="any">any condition</option>
-      </select>
-      <select id="pc-sources" title="which marketplaces this check searches">
-        <option value="">eBay + Craigslist</option>
-        <option value="ebay">eBay only</option>
-        <option value="craigslist">Craigslist only</option>
-      </select>
-      <button class="primary" id="pc-btn" onclick="priceCheck()">Check</button>
-      <button id="hunt-btn" onclick="deepHunt()"
-        title="AI casts a wide net: misspellings, bundles, lots, auctions — takes a few minutes and ~$0.25 of API credit">🔍 Deep hunt</button>
-      <select id="hunt-auctions" title="Auctions with days left often sit deceptively low and drown out real deals"
-        onchange="document.getElementById('hunt-auction-hrs').style.display = this.value === 'ending' ? '' : 'none'">
-        <option value="all">auctions: include all</option>
-        <option value="ending">auctions: ending soon only</option>
-        <option value="none">no auctions</option>
-      </select>
-      <input id="hunt-auction-hrs" type="number" min="1" max="240" value="24"
-        style="display:none;width:70px" title="only auctions ending within this many hours">
-      <select id="hunt-ai" title="which AI runs this hunt/dive - overrides the Settings default for this run only">
-        <option value="">AI: settings default</option>
-        <option value="local">AI: local (free, slow)</option>
-        <option value="api">AI: Claude API (~$0.25)</option>
-      </select> 
-    </div>
-    <div id="pc-result"></div>
-  </div>
 
-  <div class="card">
-    <h2>Add a search</h2>
-    <div class="row">
-      <input id="add-query" placeholder='search terms, e.g. "nintendo switch oled"' style="flex:2;min-width:180px">
-      <input id="add-alert" placeholder="alert at ≤ $" type="number" style="width:120px">
-      <button class="primary" onclick="addSearch()">Watch it</button>
-    </div>
-    <details class="advanced">
-      <summary>more options</summary>
-      <div class="row">
-        <input id="add-name" placeholder="label (optional)">
-        <input id="add-min" placeholder="min $" type="number" style="width:90px">
-        <input id="add-max" placeholder="max $" type="number" style="width:90px">
-        <select id="add-cond">
+  <nav class="tabs" role="tablist">
+    <button class="tab" data-view="check" onclick="showView('check')">Check a price</button>
+    <button class="tab" data-view="watching" onclick="showView('watching')">Watching</button>
+    <button class="tab" data-view="history" onclick="showView('history')">History</button>
+    <div class="grow"></div>
+    <button class="tab" data-view="settings" onclick="showView('settings')" title="Keys, models, schedule">⚙︎ Settings</button>
+  </nav>
+  <div id="statusbar"></div>
+  <section class="view" id="view-check">
+    <div class="card">
+      <h2>Price check <span class="muted" style="text-transform:none;font-weight:400">— what does it actually go for?</span></h2>
+      <div class="cmdbar">
+        <input id="pc-query" placeholder="What are you looking for?"
+          autocomplete="off" onkeydown="if (event.key === 'Enter') priceCheck()">
+        <button class="primary" id="pc-btn" onclick="priceCheck()">Check price</button>
+      </div>
+      <div class="row cmdopts">
+        <select id="pc-cond" title="condition to keep">
           <option value="working">working</option>
-          <option value="parts">parts/broken (repair donor)</option>
+          <option value="parts">parts/broken</option>
           <option value="any">any condition</option>
         </select>
-        <select id="add-sources">
+        <select id="pc-sources" title="which marketplaces this check searches">
           <option value="">eBay + Craigslist</option>
           <option value="ebay">eBay only</option>
           <option value="craigslist">Craigslist only</option>
         </select>
+        <div class="grow"></div>
+        <button id="hunt-btn" onclick="deepHunt()"
+          title="Casts a much wider net — misspellings, bundles, lots, auctions — and judges every listing. Takes a few minutes.">🔍 Deep hunt</button>
+        <details class="huntopts">
+          <summary title="Options that apply to Deep hunt only">hunt options</summary>
+          <div class="pop">
+            <label class="small">Auctions</label>
+            <select id="hunt-auctions"
+              onchange="document.getElementById('hunt-auction-hrs').style.display = this.value === 'ending' ? '' : 'none'">
+              <option value="all">include all</option>
+              <option value="ending">ending soon only</option>
+              <option value="none">no auctions</option>
+            </select>
+            <input id="hunt-auction-hrs" type="number" min="1" max="240" value="24"
+              style="display:none" title="only auctions ending within this many hours"
+              placeholder="hours">
+            <label class="small" style="margin-top:8px">Which AI runs it</label>
+            <select id="hunt-ai">
+              <option value="">settings default</option>
+              <option value="local">local (free, slow)</option>
+              <option value="api">Claude API (~$0.25)</option>
+            </select>
+            <p class="muted" style="font-size:12px;margin:8px 0 0">
+              Long auctions sit deceptively low — “ending soon” keeps them out.</p>
+          </div>
+        </details>
       </div>
+      <div id="pc-head" style="display:none"></div>
+      <div id="pc-result"></div>
+    </div>
+  </section>
+  <section class="view" id="view-watching">
+    <div class="card">
+      <h2>Automatic scanning <span class="muted" style="text-transform:none;font-weight:400">— runs on GitHub, even when this Mac is off</span></h2>
+      <div id="cloud-card"></div>
+    </div>
+    <div class="card">
+      <h2>Add a search</h2>
       <div class="row">
-        <input id="add-notes" placeholder='notes for the AI screen, e.g. "must include dock"' style="flex:1">
-        <label class="small"><input type="checkbox" id="add-auctions"> include eBay auctions</label>
-        <input id="add-window" placeholder="auction window in HOURS (default 24)" type="number" style="width:230px" title="Only alert on auctions ending within this many hours">
+        <input id="add-query" placeholder='search terms, e.g. "nintendo switch oled"' style="flex:2;min-width:180px">
+        <input id="add-alert" placeholder="alert at ≤ $" type="number" style="width:120px">
+        <button class="primary" onclick="addSearch()">Watch it</button>
       </div>
-      <p class="muted" style="font-size:13px;margin:8px 0 0">
-        No alert price? The automatic rule notifies at 25% below the typical price.
-      </p>
-    </details>
-    <div id="add-clarify"></div>
-  </div>
+      <details class="advanced">
+        <summary>more options</summary>
+        <div class="row">
+          <input id="add-name" placeholder="label (optional)">
+          <input id="add-min" placeholder="min $" type="number" style="width:90px">
+          <input id="add-max" placeholder="max $" type="number" style="width:90px">
+          <select id="add-cond">
+            <option value="working">working</option>
+            <option value="parts">parts/broken (repair donor)</option>
+            <option value="any">any condition</option>
+          </select>
+          <select id="add-sources">
+            <option value="">eBay + Craigslist</option>
+            <option value="ebay">eBay only</option>
+            <option value="craigslist">Craigslist only</option>
+          </select>
+        </div>
+        <div class="row">
+          <input id="add-notes" placeholder='notes for the AI screen, e.g. "must include dock"' style="flex:1">
+          <label class="small"><input type="checkbox" id="add-auctions"> include eBay auctions</label>
+          <input id="add-window" placeholder="auction window in HOURS (default 24)" type="number" style="width:230px" title="Only alert on auctions ending within this many hours">
+        </div>
+        <p class="muted" style="font-size:13px;margin:8px 0 0">
+          No alert price? The automatic rule notifies at 25% below the typical price.
+        </p>
+      </details>
+      <div id="add-clarify"></div>
+    </div>
+    <div class="card">
+      <h2>Watching</h2>
+      <div id="searches"><p class="muted">Loading…</p></div>
+    </div>
+    <div class="card">
+      <h2>Deals found <span class="muted" style="text-transform:none;font-weight:400">— last 14 days</span></h2>
+      <div id="deals"><p class="muted">Nothing yet.</p></div>
+    </div>
+  </section>
 
-  <div class="card">
-    <h2>Watching</h2>
-    <div id="searches"><p class="muted">Loading…</p></div>
-  </div>
-
-  <div class="card">
-    <h2>Deals found <span class="muted" style="text-transform:none;font-weight:400">— last 14 days</span></h2>
-    <div id="deals"><p class="muted">Nothing yet.</p></div>
-  </div>
-
-  <div class="card">
-    <h2>Price trends <span class="muted" style="text-transform:none;font-weight:400">— every item you have checked, over time</span>
-      <a href="/trends" style="float:right;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400">full trends page →</a></h2>
-    <div id="trends"><p class="muted">Nothing tracked yet.</p></div>
-    <p class="muted" style="font-size:12px;margin-top:8px">Price checks and
-      scheduled scans both feed this. Hunts show as markers, never as price
-      points — their pools are unscreened.</p>
-  </div>
-
-  <div class="card">
-    <h2>Past price checks <span class="muted" style="text-transform:none;font-weight:400">— saved automatically; watch prices move over time</span></h2>
-    <div id="history"><p class="muted">None yet — run a price check.</p></div>
-  </div>
-
-  <div class="card">
-    <h2>Settings &amp; API keys</h2>
-    <div class="row" id="setup-pills"></div>
-    <div class="row" style="margin-top:14px">
-      <div style="flex:1;min-width:240px">
-        <label class="small" for="set-ebay-id">eBay Client ID (App ID) — free at developer.ebay.com</label>
-        <input id="set-ebay-id" style="width:100%" autocomplete="off">
-      </div>
-      <div style="flex:1;min-width:240px">
-        <label class="small" for="set-ebay-secret">eBay Client Secret (Cert ID)</label>
-        <input id="set-ebay-secret" type="password" style="width:100%" autocomplete="off">
-      </div>
+  <section class="view" id="view-history">
+    <div class="card">
+      <h2>Price trends <span class="muted" style="text-transform:none;font-weight:400">— every item you have checked, over time</span>
+        <a href="/trends" style="float:right;font-size:13px;text-transform:none;letter-spacing:0;font-weight:400">full trends page →</a></h2>
+      <div id="trends"><p class="muted">Nothing tracked yet.</p></div>
+      <p class="muted" style="font-size:12px;margin-top:8px">Price checks and
+        scheduled scans both feed this. Hunts show as markers, never as price
+        points — their pools are unscreened.</p>
     </div>
-    <div class="row" style="margin-top:10px">
-      <div style="flex:1;min-width:240px">
-        <label class="small" for="set-anthropic">Anthropic API key - platform.claude.com (optional when using Claude login/OAuth)</label>
-        <input id="set-anthropic" type="password" style="width:100%" autocomplete="off">
-        <label class="small" style="display:flex;gap:8px;align-items:center;margin-top:8px">
-          <input id="set-anthropic-oauth" type="checkbox">
-          Use Claude login/OAuth for local AI testing
-        </label>
-      </div>
-      <div style="min-width:140px">
-        <label class="small" for="set-marketplace">eBay region</label>
-        <select id="set-marketplace" style="width:100%">
-          <option>EBAY_US</option><option>EBAY_GB</option><option>EBAY_CA</option>
-          <option>EBAY_AU</option><option>EBAY_DE</option><option>EBAY_FR</option>
-          <option>EBAY_IT</option><option>EBAY_ES</option>
-        </select>
-      </div>
+    <div class="card">
+      <h2>Past price checks <span class="muted" style="text-transform:none;font-weight:400">— saved automatically; watch prices move over time</span></h2>
+      <div id="history"><p class="muted">None yet — run a price check.</p></div>
     </div>
-    <div class="row" style="margin-top:10px">
-      <div style="min-width:220px">
-        <label class="small" for="set-ai-provider">AI provider (screening, verdicts, hunts)</label>
-        <select id="set-ai-provider" style="width:100%">
-          <option value="api">Claude API / OAuth — best quality</option>
-          <option value="local">Local model via Ollama — free &amp; private</option>
-        </select>
+  </section>
+  <section class="view" id="view-settings">
+    <div class="card">
+      <h2>Settings &amp; API keys</h2>
+      <div class="row" id="setup-pills"></div>
+      <div class="row" style="margin-top:14px">
+        <div style="flex:1;min-width:240px">
+          <label class="small" for="set-ebay-id">eBay Client ID (App ID) — free at developer.ebay.com</label>
+          <input id="set-ebay-id" style="width:100%" autocomplete="off">
+        </div>
+        <div style="flex:1;min-width:240px">
+          <label class="small" for="set-ebay-secret">eBay Client Secret (Cert ID)</label>
+          <input id="set-ebay-secret" type="password" style="width:100%" autocomplete="off">
+        </div>
       </div>
-      <div style="flex:1;min-width:180px">
-        <label class="small" for="set-local-model">local model (verdicts &amp; hunts)</label>
-        <input id="set-local-model" placeholder="qwen3.6:27b" style="width:100%">
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1;min-width:240px">
+          <label class="small" for="set-anthropic">Anthropic API key - platform.claude.com (optional when using Claude login/OAuth)</label>
+          <input id="set-anthropic" type="password" style="width:100%" autocomplete="off">
+          <label class="small" style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <input id="set-anthropic-oauth" type="checkbox">
+            Use Claude login/OAuth for local AI testing
+          </label>
+        </div>
+        <div style="min-width:140px">
+          <label class="small" for="set-marketplace">eBay region</label>
+          <select id="set-marketplace" style="width:100%">
+            <option>EBAY_US</option><option>EBAY_GB</option><option>EBAY_CA</option>
+            <option>EBAY_AU</option><option>EBAY_DE</option><option>EBAY_FR</option>
+            <option>EBAY_IT</option><option>EBAY_ES</option>
+          </select>
+        </div>
       </div>
-      <div style="flex:1;min-width:180px">
-        <label class="small" for="set-local-screen">fast screening model (optional — small model for bulk listing sorting; blank = use main model)</label>
-        <input id="set-local-screen" placeholder="e.g. qwen2.5-coder:7b" style="width:100%">
+      <div class="row" style="margin-top:10px">
+        <div style="min-width:220px">
+          <label class="small" for="set-ai-provider">AI provider (screening, verdicts, hunts)</label>
+          <select id="set-ai-provider" style="width:100%">
+            <option value="api">Claude API / OAuth — best quality</option>
+            <option value="local">Local model via Ollama — free &amp; private</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:180px">
+          <label class="small" for="set-local-model">local model (verdicts &amp; hunts)</label>
+          <input id="set-local-model" placeholder="qwen3.6:27b" style="width:100%">
+        </div>
+        <div style="flex:1;min-width:180px">
+          <label class="small" for="set-local-screen">fast screening model (optional — small model for bulk listing sorting; blank = use main model)</label>
+          <input id="set-local-screen" placeholder="e.g. qwen2.5-coder:7b" style="width:100%">
+        </div>
       </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1;min-width:160px">
+          <label class="small" for="set-cl">Craigslist city (the bit before .craigslist.org, e.g. sfbay)</label>
+          <input id="set-cl" style="width:100%">
+        </div>
+        <div style="flex:1;min-width:200px">
+          <label class="small" for="set-topic">ntfy topic (subscribe to this in the ntfy phone app — keep it secret)</label>
+          <input id="set-topic" style="width:100%">
+        </div>
+      </div>
+      <div id="sched" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+        <h3 style="font-size:14px;margin:0 0 4px">Custom scan times</h3>
+        <p class="muted" style="font-size:13px;margin:0 0 10px">
+          Most of the time use the <b>Looking</b> menu on the Watching tab.
+          Set exact times here when you want them at specific hours.</p>
+        <div class="row">
+          <div style="min-width:120px">
+            <label class="small" for="set-runs">scans per day</label>
+            <input id="set-runs" type="number" min="1" max="24" style="width:100%">
+          </div>
+          <div style="flex:1;min-width:280px">
+            <label class="small">times — one picker per scan</label>
+            <div class="row" id="set-times-boxes" style="margin-top:6px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1;min-width:280px">
+          <label class="small" for="set-github">GitHub token for automatic scanning — fine-grained, scoped to your scan repo, with Contents + Actions + Workflows (read &amp; write)</label>
+          <input id="set-github" type="password" style="width:100%" autocomplete="off">
+        </div>
+        <div style="align-self:flex-end">
+          <button id="cloud-btn" onclick="cloudSetup()">…</button>
+          <button id="cloud-sync-btn" onclick="cloudSync()" style="display:none">Sync to cloud now</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" onclick="saveSettings()">Save settings</button>
+        <span class="muted" style="font-size:13px">Keys are stored only in config.json on this Mac. Blank fields keep their current value.</span>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button id="sched-btn" onclick="toggleSchedule()">…</button>
+        <button id="awake-btn" title="Prevents system sleep ONLY while plugged into power (display still sleeps; battery unaffected). A closed MacBook lid still sleeps — leave it open when plugged in."
+          onclick="post('/api/awake', {enable: !state.setup.awake})">…</button>
+        <button onclick="post('/api/test-notify', {}).then(r => r && toast('Test push sent to topic: ' + r.topic))">Send test notification</button>
+      </div>
+      <details class="advanced"><summary>activity log</summary><pre id="log">…</pre></details>
     </div>
-    <div class="row" style="margin-top:10px">
-      <div style="flex:1;min-width:160px">
-        <label class="small" for="set-cl">Craigslist city (the bit before .craigslist.org, e.g. sfbay)</label>
-        <input id="set-cl" style="width:100%">
-      </div>
-      <div style="flex:1;min-width:200px">
-        <label class="small" for="set-topic">ntfy topic (subscribe to this in the ntfy phone app — keep it secret)</label>
-        <input id="set-topic" style="width:100%">
-      </div>
-      <div style="min-width:110px">
-        <label class="small" for="set-runs">scans per day</label>
-        <input id="set-runs" type="number" min="1" max="12" style="width:100%">
-      </div>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div style="flex:1;min-width:280px">
-        <label class="small">daily scan times — one picker per scan (change "scans per day" above to add or remove)</label>
-        <div class="row" id="set-times-boxes" style="margin-top:6px"></div>
-      </div>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <div style="flex:1;min-width:280px">
-        <label class="small" for="set-github">GitHub token (for the cloud watcher — fine-grained, with Administration, Contents, Secrets, Actions &amp; Workflows read/write)</label>
-        <input id="set-github" type="password" style="width:100%" autocomplete="off">
-      </div>
-      <div style="align-self:flex-end">
-        <button id="cloud-btn" onclick="cloudSetup()">…</button>
-        <button id="cloud-sync-btn" onclick="cloudSync()" style="display:none">Sync to cloud now</button>
-      </div>
-    </div>
-    <div class="row" style="margin-top:12px">
-      <button class="primary" onclick="saveSettings()">Save settings</button>
-      <span class="muted" style="font-size:13px">Keys are stored only in config.json on this Mac. Blank fields keep their current value.</span>
-    </div>
-    <div class="row" style="margin-top:14px">
-      <button id="sched-btn" onclick="toggleSchedule()">…</button>
-      <button id="awake-btn" title="Prevents system sleep ONLY while plugged into power (display still sleeps; battery unaffected). A closed MacBook lid still sleeps — leave it open when plugged in."
-        onclick="post('/api/awake', {enable: !state.setup.awake})">…</button>
-      <button onclick="post('/api/test-notify', {}).then(r => r && alert('Test push sent to topic: ' + r.topic))">Send test notification</button>
-    </div>
-    <details class="advanced"><summary>activity log</summary><pre id="log">…</pre></details>
-  </div>
+  </section>
 </div>
 
 <script>
@@ -318,10 +445,10 @@ async function post(path, body) {
     const resp = await fetch(path, {method: "POST",
       headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
     const data = await resp.json();
-    if (data.error) { alert(data.error); return null; }
+    if (data.error) { toast(data.error, 5000); return null; }
     refresh();
     return data;
-  } catch (e) { alert("Could not reach the DealFinder server."); return null; }
+  } catch (e) { toast("Could not reach the DealFinder server — is it still running?", 5000); return null; }
 }
 
 
@@ -340,7 +467,10 @@ async function loadHistory() {
     const rows = (await resp.json()).checks || [];
     const box = document.getElementById("history");
     if (!rows.length) {
-      box.innerHTML = '<p class="muted">None yet — run a price check.</p>';
+      box.innerHTML = `<div class="empty"><p class="muted">No saved checks yet.</p>
+        <p class="muted" style="font-size:13px">Every price check and deep hunt is
+        saved here automatically, so you can reopen one later without paying for it
+        again.</p></div>`;
       return;
     }
     box.innerHTML = rows.map(c => c.mode === "hunt" ? `
@@ -364,7 +494,7 @@ async function loadHistory() {
 async function viewCheck(id) {
   const resp = await fetch("/api/price-history?id=" + id);
   const data = await resp.json();
-  if (data.error) { alert(data.error); return; }
+  if (data.error) { toast(data.error, 5000); return; }
   document.getElementById("pc-query").value = data.query;
   const diveBtn = data.mode === "hunt" && !data.result.dived
     ? ` <button style="padding:2px 10px;font-size:13px" onclick="huntDive(${id})"
@@ -377,6 +507,9 @@ async function viewCheck(id) {
   const droppedNote = (data.result.dive_dropped || []).length
     ? `<p class="muted" style="font-size:13px">Dive dropped ${data.result.dive_dropped.length}:
        ${data.result.dive_dropped.map(d => esc(d.title.slice(0, 40)) + " (" + esc(d.reason.slice(0, 60)) + ")").join(" · ")}</p>` : "";
+  showView("check");
+  resultHead("saved", data.query,
+    `${data.mode === "hunt" ? "deep hunt" : "price check"} from ${data.ts.replace("T", " ").slice(0, 16)}`);
   document.getElementById("pc-result").innerHTML =
     `<p class="muted" style="font-size:13px">Saved ${data.mode === "hunt" ? "deep hunt" : "check"} from ${esc(data.ts.replace("T", " "))} — no new API cost.${diveBtn}${sellBtn}</p>`
     + droppedNote
@@ -454,7 +587,9 @@ async function loadTrends() {
     const items = (await (await fetch("/api/trends")).json()).items || [];
     const box = document.getElementById("trends");
     if (!items.length) {
-      box.innerHTML = '<p class="muted">Nothing tracked yet — run a price check.</p>';
+      box.innerHTML = `<div class="empty"><p class="muted">Nothing tracked yet.</p>
+        <p class="muted" style="font-size:13px">Run the same price check twice and a
+        trend line appears — it needs two points before it can show you a direction.</p></div>`;
       return;
     }
     box.innerHTML = items.map((it, i) => {
@@ -506,14 +641,88 @@ function toggleTrend(i) {
 }
 
 window.addEventListener("load", () => {
+  // after top-level consts exist - calling showView above the VIEWS
+  // declaration hit the temporal dead zone
+  showView((() => {
+    try { return localStorage.getItem("view") || "check"; } catch (e) { return "check"; }
+  })());
   const want = localStorage.getItem("viewCheck");
   if (want) { localStorage.removeItem("viewCheck"); setTimeout(() => viewCheck(+want), 400); }
 });
+
+// Adding a search runs AI query-expansion server-side and can take 10-20s.
+// Without visible feedback the button looks dead and people click again.
+async function busy(btn, label, fn) {
+  if (!btn) return fn();
+  const was = btn.textContent, wasDisabled = btn.disabled;
+  btn.disabled = true;
+  btn.textContent = label;
+  try { return await fn(); }
+  finally { btn.disabled = wasDisabled; btn.textContent = was; }
+}
+
+let toastTimer = null;
+function toast(text, ms) {
+  const el = document.getElementById("toast");
+  if (!el) return;
+  el.textContent = text;
+  el.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("on"), ms || 3200);
+}
+
+// Whether any inline editor is open, derived from the DOM rather than kept
+// in a counter: a re-render wipes the panels, and a stale counter would pause
+// the live refresh forever.
+function anyEditorOpen() {
+  return [...document.querySelectorAll(".search-edit")]
+    .some(p => p.style.display !== "none");
+}
+
+const VIEWS = ["check", "watching", "history", "settings"];
+
+function showView(name) {
+  if (!VIEWS.includes(name)) name = "check";
+  VIEWS.forEach(v => {
+    const sec = document.getElementById("view-" + v);
+    if (sec) sec.classList.toggle("on", v === name);
+  });
+  document.querySelectorAll(".tab").forEach(t =>
+    t.setAttribute("aria-current", String(t.dataset.view === name)));
+  try { localStorage.setItem("view", name); } catch (e) {}
+  window.scrollTo({top: 0});
+}
+
+function renderStatus() {
+  const el = document.getElementById("statusbar");
+  if (!el || !state) return;
+  const bits = [];
+  const ai = state.setup?.ai_ok;
+  bits.push(`<span><i class="dot ${ai ? "ok" : "bad"}"></i>${ai
+    ? esc(state.setup.ai_label || "AI ready") : "AI not configured"}</span>`);
+  const n = (state.searches || []).length;
+  const live = (state.searches || []).filter(s => s.enabled !== false).length;
+  bits.push(`<span><i class="dot ${live ? "ok" : "off"}"></i><b>${live}</b> watching${
+    n - live ? ` <span class="muted">(${n - live} paused)</span>` : ""}</span>`);
+  const c = state.cloud || {};
+  if (c.enabled) {
+    const s = c.status || {};
+    const when = s.last_run ? s.last_run.replace("T", " ").slice(5, 16) : null;
+    const bad = s.result && s.result !== "success";
+    bits.push(`<span><i class="dot ${bad ? "bad" : "ok"}"></i>cloud scans on${
+      when ? ` · last ${esc(when)} UTC` : ""}${bad ? " · last run failed" : ""}</span>`);
+  } else {
+    bits.push('<span><i class="dot off"></i>cloud scans off</span>');
+  }
+  el.innerHTML = bits.join("");
+}
 
 async function refresh() {
   const resp = await fetch("/api/state");
   state = await resp.json();
   render();
+  renderStatus();
+  renderCloud();
   loadHistory();
   loadTrends();
   const logResp = await fetch("/api/log");
@@ -602,9 +811,16 @@ function render() {
   // searches
   const box = document.getElementById("searches");
   if (!s.searches.length) {
-    box.innerHTML = '<p class="muted">Nothing yet — add a search above.</p>';
+    box.innerHTML = `<div class="empty">
+      <p><b>Nothing watched yet.</b></p>
+      <p class="muted">Add a search above and DealFinder checks it on a schedule,
+      pushing a phone alert when something lands under your price.</p>
+      <p class="muted" style="font-size:13px">The <b>notes</b> field does the heavy
+      lifting — plain English like <i>“ONLY the 40mm f/1.7 GIII, not the 45mm
+      original”</i> is handed straight to the AI and is what keeps wrong variants out.</p>
+    </div>`;
   } else {
-    box.innerHTML = s.searches.map(x => {
+    box.innerHTML = s.searches.map((x, i) => {
       const meta = [];
       if (x.query !== x.name) meta.push("“" + esc(x.query) + "”");
       const lo = x.min_price, hi = x.max_price;
@@ -617,21 +833,97 @@ function render() {
         meta.push("auctions ending within " + (x.auction_max_hours || 24) + " hours");
       if ((x.queries || []).length > 1)
         meta.push("AI also searches: " + x.queries.slice(1).map(esc).join(" · "));
+      if (x.heartbeat) meta.push(x.heartbeat === "daily"
+        ? "checks in daily" : "checks in every scan");
       if (x.notes) meta.push("notes: " + esc(x.notes));
       const alert = x.alert_under != null
         ? `<span class="alert-tag">alert ≤ ${money(x.alert_under)}</span>`
         : `<span class="muted" style="font-size:13px">auto: 25% below typical</span>`;
       const n = JSON.stringify(x.name);
-      return `<div class="search-item">
-        <span class="switch"><input type="checkbox" ${x.enabled !== false ? "checked" : ""}
+      const src0 = (x.sources || []).join(",");
+      return `<div class="search-row">
+        <div class="search-item">
+        <label class="switch" title="${x.enabled !== false ? "Watching — click to pause" : "Paused — click to resume"}">
+          <input type="checkbox" ${x.enabled !== false ? "checked" : ""}
           onchange='post("/api/toggle", {name: ${esc(n)}, enabled: this.checked})'>
-          <span class="slider"></span></span>
+          <span class="slider"></span></label>
         <div class="grow">
-          <div class="search-name">${esc(x.name)} &nbsp;${alert}</div>
+          <div class="search-name">${esc(x.name)} &nbsp;${alert}
+            ${x.enabled === false ? '<span class="pill bad">paused</span>' : ""}</div>
           <div class="search-meta">${meta.join(" · ")}</div>
         </div>
-        <button onclick='editAlert(${esc(n)}, ${x.alert_under != null ? x.alert_under : "null"})'>Alert…</button>
-        <button class="danger-link" onclick='if (confirm("Remove this search?")) post("/api/remove", {name: ${esc(n)}})'>remove</button>
+        <button onclick='toggleEdit(${i})' id="edit-btn-${i}">Edit</button>
+        <button class="danger-link" onclick='removeSearch(${esc(n)})'>remove</button>
+        </div>
+        <div class="search-edit" id="edit-${i}" style="display:none">
+          <div>
+            <label class="small">Alert me at or under</label>
+            <input id="e-alert-${i}" type="number" step="1" placeholder="auto: 25% below typical"
+              value="${x.alert_under != null ? x.alert_under : ""}">
+          </div>
+          <div>
+            <label class="small">Condition</label>
+            <select id="e-cond-${i}">
+              <option value="working" ${(x.condition || "working") === "working" ? "selected" : ""}>working</option>
+              <option value="parts" ${x.condition === "parts" ? "selected" : ""}>parts/broken</option>
+              <option value="any" ${x.condition === "any" ? "selected" : ""}>any condition</option>
+            </select>
+          </div>
+          <div>
+            <label class="small">Marketplaces</label>
+            <select id="e-src-${i}">
+              <option value="" ${src0 === "" ? "selected" : ""}>eBay + Craigslist</option>
+              <option value="ebay" ${src0 === "ebay" ? "selected" : ""}>eBay only</option>
+              <option value="craigslist" ${src0 === "craigslist" ? "selected" : ""}>Craigslist only</option>
+            </select>
+          </div>
+          <div>
+            <label class="small">Price range (optional)</label>
+            <div class="row" style="gap:6px">
+              <input id="e-min-${i}" type="number" placeholder="min" value="${x.min_price != null ? x.min_price : ""}">
+              <input id="e-max-${i}" type="number" placeholder="max" value="${x.max_price != null ? x.max_price : ""}">
+            </div>
+          </div>
+          <div>
+            <label class="small">Auctions</label>
+            <div class="row" style="gap:6px;align-items:center">
+              <label class="small" style="white-space:nowrap">
+                <input id="e-auc-${i}" type="checkbox" ${x.include_auctions ? "checked" : ""}> include
+              </label>
+              <input id="e-auch-${i}" type="number" style="max-width:80px"
+                placeholder="hrs" value="${x.auction_max_hours != null ? x.auction_max_hours : 24}"
+                title="only auctions ending within this many hours">
+            </div>
+          </div>
+          <div class="full">
+            <label class="small">Check in when nothing's found</label>
+            <select id="e-hb-${i}" style="max-width:280px">
+              <option value="" ${!x.heartbeat ? "selected" : ""}>Never — only message me about deals</option>
+              <option value="daily" ${x.heartbeat === "daily" ? "selected" : ""}>Once a day</option>
+              <option value="scan" ${x.heartbeat === "scan" ? "selected" : ""}>After every scan</option>
+            </select>
+            <p class="muted" style="font-size:12px;margin:5px 0 0">
+              A quiet message with the cheapest price seen — so you know it's
+              still looking, and whether your target is realistic.</p>
+          </div>
+          <div class="full">
+            <label class="small">Notes — plain English, and the most powerful setting here.
+              This is handed straight to the AI when it screens.</label>
+            <textarea id="e-notes-${i}" placeholder="e.g. ONLY the 40mm f/1.7 GIII. Not the 45mm original, not QL19/QL25.">${esc(x.notes || "")}</textarea>
+          </div>
+          <div class="full" style="border-top:1px solid var(--line);padding-top:10px">
+            <p class="muted" style="font-size:12px;margin:0">
+              Scanned <b>${(state?.settings?.run_times || "").split(",").filter(Boolean).length || 4}× a day</b>
+              together with your other searches —
+              <a href="#" onclick="jumpToSchedule();return false">change how often</a>.
+              Frequency is shared because one scan covers everything.</p>
+          </div>
+          <div class="full row">
+            <button class="primary" onclick='saveSearch(${i}, ${esc(n)})'>Save changes</button>
+            <button onclick='toggleEdit(${i})'>Cancel</button>
+            <span class="muted" id="e-msg-${i}" style="font-size:13px;align-self:center"></span>
+          </div>
+        </div>
       </div>`;
     }).join("");
   }
@@ -643,20 +935,70 @@ function render() {
       <a href="${esc(d.url)}" target="_blank">${money(d.price)} — ${esc(d.title)}</a>
       <div class="search-meta">${esc(d.search)} · ${esc(d.when.replace("T", " "))}</div>
     </div>`).join("")
-    : '<p class="muted">Nothing yet. Deals show up here and as phone notifications.</p>';
+    : `<div class="empty"><p class="muted">No deals in the last 14 days.</p>
+       <p class="muted" style="font-size:13px">Anything that beats your alert price
+       lands here and on your phone. Quiet is normal — a scan that finds nothing
+       costs nothing.</p></div>`;
 }
 
-function editAlert(name, current) {
-  const v = prompt(
-    'Notify when "' + name + '" appears at or under… (blank = back to the automatic rule)',
-    current != null ? current : "");
-  if (v === null) return;
-  post("/api/set", {name: name, alert_under: v.trim() === "" ? null : parseFloat(v)});
+function jumpToSchedule() {
+  showView("watching");
+  const strip = document.querySelector(".strip");
+  if (!strip) return;
+  strip.scrollIntoView({behavior: "smooth", block: "center"});
+  strip.classList.remove("strip-flash");
+  void strip.offsetWidth;            // restart the animation
+  strip.classList.add("strip-flash");
+}
+
+function toggleEdit(i) {
+  const panel = document.getElementById("edit-" + i);
+  const btn = document.getElementById("edit-btn-" + i);
+  if (!panel) return;
+  const opening = panel.style.display === "none";
+  panel.style.display = opening ? "" : "none";
+  if (btn) btn.textContent = opening ? "Close" : "Edit";
+}
+
+async function saveSearch(i, name) {
+  const val = id => {
+    const el = document.getElementById(id + "-" + i);
+    return el ? el.value.trim() : "";
+  };
+  const msg = document.getElementById("e-msg-" + i);
+  if (msg) msg.textContent = "Saving…";
+  const body = {
+    name: name,
+    alert_under: val("e-alert") === "" ? null : val("e-alert"),
+    min_price: val("e-min") === "" ? null : val("e-min"),
+    max_price: val("e-max") === "" ? null : val("e-max"),
+    condition: val("e-cond"),
+    sources: val("e-src") ? [val("e-src")] : null,
+    include_auctions: document.getElementById("e-auc-" + i).checked,
+    auction_max_hours: val("e-auch") === "" ? null : val("e-auch"),
+    notes: document.getElementById("e-notes-" + i).value.trim(),
+    heartbeat: val("e-hb"),
+  };
+  const r = await post("/api/set", body);
+  if (!r) { if (msg) msg.textContent = ""; return; }
+  if (state?.cloud?.enabled) toast("Saved — and synced to GitHub.");
+  else toast("Saved.");
+}
+
+function removeSearch(name) {
+  if (!confirm('Remove "' + name + '"? Its settings and notes go too.')) return;
+  post("/api/remove", {name: name});
 }
 
 function addSearch(mode) {
+  return busy(document.querySelector("#view-watching .card .primary"),
+              "Adding…", () => doAddSearch(mode));
+}
+
+function doAddSearch(mode) {
   const q = document.getElementById("add-query").value.trim();
-  if (!q) { alert("Enter search terms first."); return; }
+  if (!q) { toast("Type what you're looking for first.");
+    document.getElementById("pc-query").focus(); return; }
   const srcs = document.getElementById("add-sources").value;
   const payload = {
     query: q,
@@ -683,7 +1025,7 @@ function addSearch(mode) {
     document.getElementById("add-clarify").innerHTML = "";
     ["add-query","add-name","add-alert","add-min","add-max","add-notes","add-window"]
       .forEach(id => document.getElementById(id).value = "");
-    alert("Watching it." + (r.variant_info ? " " + r.variant_info : ""));
+    toast("Watching it." + (r.variant_info ? " " + r.variant_info : ""));
   });
 }
 
@@ -762,7 +1104,8 @@ function renderPriceResult(q, r) {
 
 async function priceCheck(mode) {
   const q = document.getElementById("pc-query").value.trim();
-  if (!q) { alert("Enter search terms first."); return; }
+  if (!q) { toast("Type what you're looking for first.");
+    document.getElementById("pc-query").focus(); return; }
   const btn = document.getElementById("pc-btn");
   const out = document.getElementById("pc-result");
   btn.disabled = true;
@@ -794,35 +1137,69 @@ async function priceCheck(mode) {
       currentProfile = r.profile_draft;
       profileCtx = {query: q, notes: ""};
       out.innerHTML = "";
+      resultHead("review", q, "check the profile before spending");
       profileCard("pc-result", "Run the check", "priceCheck(true)", "priceCheck('skip')");
       return;
     }
     lastProfile = r.profile || null;
+    resultHead("price check", q, `${r.kept} kept of ${r.fetched} fetched`);
     out.innerHTML = renderPriceResult(q, r);
 
   } finally { btn.disabled = false; }
 }
 
 
+let watchQuery = null;   // set by watchFromPrice, read by confirmWatch
+
 function watchFromPrice(q, suggested) {
-  const v = prompt('Notify when "' + q + '" appears at or under\u2026'
-    + (suggested != null ? " (AI suggests " + Math.round(suggested) + ")" : ""),
-    suggested != null ? Math.round(suggested) : "");
-  if (v === null) return;
-  const wSrc = document.getElementById("pc-sources").value;
-  const payload = {query: q, alert_under: v.trim() === "" ? null : v,
-    condition: document.getElementById("pc-cond").value,
-    sources: wSrc ? [wSrc] : null};
+  watchQuery = q;
+  // was a prompt() box; an inline form keeps the result on screen so you can
+  // still see the prices you're deciding against
+  const host = document.getElementById("pc-result");
+  if (document.getElementById("watch-form")) {
+    document.getElementById("watch-price").focus();
+    return;
+  }
+  const guess = suggested != null ? Math.round(suggested) : "";
+  host.insertAdjacentHTML("afterbegin", `
+    <div id="watch-form" style="background:var(--accent-soft);border-radius:10px;
+      padding:12px 14px;margin-bottom:12px">
+      <b>Watch “${esc(q)}”</b>
+      <p class="muted" style="font-size:13px;margin:4px 0 8px">
+        You'll get a phone alert when one appears at or under your price.
+        ${suggested != null ? "The AI suggests " + money(suggested) + "." : ""}</p>
+      <div class="row">
+        <input id="watch-price" type="number" placeholder="alert at or under"
+          value="${guess}" style="max-width:190px">
+        <button class="primary" onclick="confirmWatch()">Watch it</button>
+        <button onclick="document.getElementById('watch-form').remove()">Cancel</button>
+      </div>
+    </div>`);
+  document.getElementById("watch-price").focus();
+}
+
+async function confirmWatch() {
+  const q = watchQuery;
+  if (!q) { toast("Run a price check first."); return; }
+  return busy(document.querySelector("#watch-form button.primary"),
+              "Setting it up…", () => doWatch(q));
+}
+
+async function doWatch(q) {
+  const el = document.getElementById("watch-price");
+  const v = el ? el.value.trim() : "";
+  const payload = {query: q, alert_under: v === "" ? null : v,
+    condition: document.getElementById("pc-cond").value};
+  const srcSel = document.getElementById("pc-sources").value;
+  payload.sources = srcSel ? [srcSel] : null;
   if (lastProfile) payload.profile = lastProfile;
-  else payload.skip_profile = true;   // the check already ran without one
-  post("/api/add", payload).then(r => {
-    if (!r) return;
-    let msg = "Watching it.";
-    if (r.variant_info) msg += " " + r.variant_info;
-    if ((r.queries || []).length > 1)
-      msg += "\nSearching: " + r.queries.join(" \u00b7 ");
-    alert(msg);
-  });
+  else payload.skip_profile = true;
+  const r = await post("/api/add", payload);
+  if (!r) return;
+  document.getElementById("watch-form")?.remove();
+  let msg = "Watching it.";
+  if ((r.queries || []).length > 1) msg += " AI also searches " + (r.queries.length - 1) + " variations.";
+  toast(msg, 4500);
 }
 
 // ---- search profile: the always-on review card shown before money is spent
@@ -910,7 +1287,7 @@ function addReject() {
 
 function refineProfile() {
   const fb = document.getElementById("pf-feedback").value.trim();
-  if (!fb) { alert("Tell the AI what to change first."); return; }
+  if (!fb) { toast("Tell the AI what to change first."); return; }
   const prior = JSON.parse(JSON.stringify(collectProfile()));
   const keepManual = prior.manual_rejects || [], keepGuide = prior.guidance || "";
   document.getElementById("pf-dry").innerHTML =
@@ -941,6 +1318,28 @@ function dryPreview() {
   });
 }
 
+
+// Five different things render into #pc-result (live check, hunt, a saved
+// check, sell advice, the profile card). Without a header you cannot tell
+// which one you are looking at, or that opening a saved check replaced your
+// live results.
+function resultHead(kind, title, sub) {
+  const head = document.getElementById("pc-head");
+  if (!head) return;
+  if (!kind) { head.style.display = "none"; head.innerHTML = ""; return; }
+  head.style.display = "";
+  head.innerHTML = `<div class="reshead">
+    <span class="pill ${kind === "saved" ? "bad" : "ok"}">${esc(kind)}</span>
+    <b>${esc(title)}</b>
+    ${sub ? `<span class="muted">${esc(sub)}</span>` : ""}
+    <button class="ghost" style="margin-left:auto" onclick="clearResult()">clear</button>
+  </div>`;
+}
+
+function clearResult() {
+  document.getElementById("pc-result").innerHTML = "";
+  resultHead(null);
+}
 
 function shipNote(l) {
   // prices already include shipping; this just shows the breakdown
@@ -988,10 +1387,11 @@ function renderHuntResult(r) {
 
 async function deepHunt() {
   const q = document.getElementById("pc-query").value.trim();
-  if (!q) { alert("Enter search terms first."); return; }
+  if (!q) { toast("Type what you're looking for first.");
+    document.getElementById("pc-query").focus(); return; }
   const huntAi = document.getElementById("hunt-ai").value;
   if (!huntAi && !state?.setup?.ai_ok) {
-    alert("Deep Hunt needs a working AI backend - add an API key in Settings, or pick 'AI: local' next to the hunt button.");
+    toast("Deep Hunt needs a working AI backend — add an API key in Settings, or pick 'AI: local' beside the hunt button.", 5500);
     return;
   }
   if (!confirm("Deep Hunt casts a wide net for \"" + q + "\": misspellings, " +
@@ -1017,6 +1417,7 @@ async function deepHunt() {
         ai: document.getElementById("hunt-ai").value || null})});
     const r = await resp.json();
     if (r.error) { out.innerHTML = `<p class="muted">${esc(r.error)}</p>`; return; }
+    resultHead("deep hunt", q, `${(r.finds || []).length} finds of ${r.fetched} examined`);
     out.innerHTML = renderHuntResult(r);
   } catch (e) {
     out.innerHTML = '<p class="muted">Hunt failed — is the server still running?</p>';
@@ -1059,6 +1460,159 @@ document.getElementById("set-runs").addEventListener("input", () => {
   timesDirty = true;
 });
 
+// How often scans run is GLOBAL - one scan covers every search - so it lives
+// here in the strip and never inside an individual search.
+const FREQS = [
+  {v: 1,  label: "Once a day"},
+  {v: 2,  label: "Twice a day"},
+  {v: 4,  label: "4\u00d7 a day \u2014 every ~4 hours"},
+  {v: 7,  label: "7\u00d7 a day \u2014 every ~2 hours"},
+  {v: 13, label: "13\u00d7 a day \u2014 hourly, 9am\u20139pm"},
+  {v: 24, label: "Hourly, around the clock"},
+];
+
+function spreadTimes(n) {
+  if (n >= 24) return Array.from({length: 24}, (_, i) => String(i).padStart(2, "0") + ":00");
+  if (n === 1) return ["09:00"];
+  // spread across waking hours, 09:00-21:00
+  return Array.from({length: n}, (_, i) =>
+    String(Math.round(9 + i * (12 / (n - 1)))).padStart(2, "0") + ":00");
+}
+
+function currentTimes() {
+  const raw = (state?.settings?.run_times || "").trim();
+  return raw ? raw.split(",").map(t => t.trim()).filter(Boolean) : [];
+}
+
+async function setFrequency(sel) {
+  if (sel.value === "custom") {
+    showView("settings");
+    const el = document.getElementById("sched");
+    if (el) setTimeout(() => el.scrollIntoView({behavior: "smooth", block: "center"}), 60);
+    return;
+  }
+  const times = spreadTimes(parseInt(sel.value, 10));
+  const r = await post("/api/settings", {run_times: times.join(", ")});
+  if (r) toast("Now scanning " + times.length + "\u00d7 a day: " + times.join(", "), 4500);
+}
+
+function nextScanText() {
+  const iso = state?.settings?.next_scan;
+  if (!iso) return "paused";
+  const d = new Date(iso), now = new Date();
+  const mins = Math.max(0, Math.round((d - now) / 60000));
+  const clock = d.toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+  if (mins < 60) return `next scan ${clock} (in ${mins} min)`;
+  return `next scan ${clock} (in ${Math.round(mins / 60)}h)`;
+}
+
+function scanStrip() {
+  const searches = state?.searches || [];
+  const live = searches.filter(s => s.enabled !== false).length;
+  const paused = searches.length - live;
+  const on = state?.enabled !== false && live > 0;
+  const times = currentTimes();
+  const n = times.length || (state?.settings?.runs_per_day || 4);
+  const known = FREQS.some(f => f.v === n) &&
+    JSON.stringify(times) === JSON.stringify(spreadTimes(n));
+  return `<div class="strip">
+    <div class="strip-main">
+      <span class="statechip ${on ? "on" : "off"}">
+        <i class="dot ${on ? "ok" : "off"}"></i>Scanning ${on ? "ON" : "paused"}</span>
+      <label class="small" style="margin:0">Looking
+        <select onchange="setFrequency(this)" style="margin-left:6px">
+          ${FREQS.map(f => `<option value="${f.v}" ${f.v === n && known ? "selected" : ""}>${f.label}</option>`).join("")}
+          <option value="custom" ${known ? "" : "selected"}>Custom times…</option>
+        </select>
+      </label>
+      <div class="grow"></div>
+      <button class="primary" onclick="cloudRun()">▶︎ Scan now</button>
+    </div>
+    <div class="strip-sub">
+      ${on ? esc(nextScanText()) : "nothing will run while scanning is paused"}
+      · covers <b>all ${live}</b> active search${live === 1 ? "" : "es"}${paused ? ` (${paused} paused)` : ""}
+      ${times.length ? "· at " + esc(times.join(", ")) : ""}
+    </div>
+  </div>`;
+}
+
+function renderCloud() {
+  const box = document.getElementById("cloud-card");
+  if (!box) return;
+  const c = state?.cloud || {};
+  const hasToken = !!state?.settings?.github_token_tail;
+  const strip = scanStrip();
+  if (!c.enabled) {
+    // The token field lives here, not only in Settings: needing to save in
+    // one card before a button in another card would unlock was a trap.
+    box.innerHTML = strip + `<p class="muted">Not connected. Scheduled scans run on
+      GitHub Actions using your Claude subscription, so they keep working when
+      this Mac is closed.</p>
+      <div class="row" style="margin-top:8px">
+        <div style="flex:1;min-width:260px">
+          <label class="small" for="cloud-token">GitHub fine-grained token
+            ${hasToken ? '<span class="pill ok">saved ···' + esc(state.settings.github_token_tail) + "</span>" : ""}</label>
+          <input id="cloud-token" type="password" style="width:100%" autocomplete="off"
+            placeholder="${hasToken ? "saved — paste again only to replace it" : "github_pat_..."}">
+        </div>
+        <div style="flex:1;min-width:220px">
+          <label class="small" for="cloud-repo">Scan repo</label>
+          <input id="cloud-repo" style="width:100%" placeholder="owner/repo"
+            value="chma3348/Used-Market-Scraper">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="primary" onclick="cloudSetup()">Save token &amp; connect</button>
+        <span class="muted" style="font-size:12px;align-self:center">needs Contents + Actions + Workflows (read &amp; write)</span>
+      </div>
+      <div id="cloud-msg" class="muted" style="font-size:13px;margin-top:6px"></div>`;
+    return;
+  }
+  const s = c.status || {};
+  const when = s.last_run ? s.last_run.replace("T", " ").slice(0, 16) : null;
+  const outcome = s.state === "in_progress" || s.state === "queued"
+    ? '<span class="pill ok">running now</span>'
+    : (s.result === "success" ? '<span class="pill ok">last run OK</span>'
+       : s.result ? '<span class="pill bad">last run ' + esc(s.result) + "</span>"
+       : '<span class="muted">no runs yet</span>');
+  const n = (state?.searches || []).length;
+  box.innerHTML = strip + `
+    <p><b>${esc(c.repo)}</b> ${outcome}
+      ${when ? '<span class="muted">· last scan ' + esc(when) + " UTC</span>" : ""}</p>
+    <p class="muted" style="font-size:13px">${n} search${n === 1 ? "" : "es"}
+      syncing up. Edits here are pushed to the repo; findings come back into
+      Past price checks below.</p>
+    <div class="row" style="margin-top:8px">
+      <button onclick="cloudSync()">Sync searches</button>
+      <button onclick="cloudResults()">Pull results</button>
+      <a href="${esc(s.url || "#")}" target="_blank" style="align-self:center">open on GitHub ↗</a>
+      <button style="margin-left:auto" onclick="cloudSetup()">Disconnect</button>
+    </div>
+    <div id="cloud-msg" class="muted" style="font-size:13px;margin-top:6px"></div>`;
+}
+
+function cloudMsg(t) {
+  const el = document.getElementById("cloud-msg");
+  if (el) el.textContent = t;
+}
+
+async function cloudRun() {
+  cloudMsg("Syncing searches and starting a scan on GitHub…");
+  const r = await post("/api/cloud-run", {});
+  if (r) cloudMsg("Scan started. It takes a few minutes; findings arrive as "
+                  + "phone alerts and land in Past price checks once you Pull results.");
+  setTimeout(refresh, 3000);
+}
+
+async function cloudResults() {
+  cloudMsg("Checking GitHub for new scan write-ups…");
+  const r = await post("/api/cloud-results", {});
+  if (!r) return;
+  cloudMsg(r.pulled.length
+    ? `Pulled ${r.pulled.length} new scan report(s) into history/.`
+    : `Nothing new — ${r.available} scan report(s) already local.`);
+}
+
 async function cloudSetup() {
   if (state?.cloud?.enabled) {
     if (!confirm("Disable the cloud watcher? Scheduled eBay scanning moves " +
@@ -1066,26 +1620,29 @@ async function cloudSetup() {
     await post("/api/cloud-setup", {disable: true});
     return;
   }
-  if (!state?.settings?.github_token_tail) {
-    alert("Paste your GitHub token in the field to the left and click " +
-          "Save settings first.");
+  const typed = (document.getElementById("cloud-token") || {}).value || "";
+  if (typed.trim()) {
+    cloudMsg("Saving the token…");
+    const saved = await fetch("/api/settings", {method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({github_token: typed.trim()})});
+    const sr = await saved.json();
+    if (sr.error) { cloudMsg(sr.error); return; }
+  } else if (!state?.settings?.github_token_tail) {
+    cloudMsg("Paste your GitHub fine-grained token above first.");
     return;
   }
-  const btn = document.getElementById("cloud-btn");
-  btn.disabled = true;
-  btn.textContent = "Setting up on GitHub… (~30s)";
-  try {
-    const r = await post("/api/cloud-setup", {});
-    if (r) alert("Cloud watcher is live!\n\nRepo: " + r.repo +
-      "\nA test run was started — watch it at:\n" + r.url +
-      "\n\nYour Mac now covers Craigslist; GitHub covers eBay, " +
-      "even when this Mac is off.");
-  } finally { btn.disabled = false; refresh(); }
+  const repo = (document.getElementById("cloud-repo") || {}).value
+    || "chma3348/Used-Market-Scraper";
+  cloudMsg("Checking the repo and pushing your searches…");
+  const r = await post("/api/cloud-setup", {repo: repo.trim()});
+  if (r) toast("Connected to " + r.repo + " — searches synced. Use “Scan now” to trigger a run.", 5000);
+  refresh();
 }
 
 async function cloudSync() {
   const r = await post("/api/cloud-sync", {});
-  if (r) alert("Searches, schedule, and keys synced to the cloud watcher.");
+  if (r) toast("Searches and schedule synced to GitHub.");
 }
 
 function saveSettings() {
@@ -1110,7 +1667,7 @@ function saveSettings() {
       ["set-ebay-id", "set-ebay-secret", "set-anthropic", "set-github"]
         .forEach(id => document.getElementById(id).value = "");
       timesDirty = false;
-      alert("Settings saved.");
+      toast("Settings saved.");
     }
   });
 }
@@ -1122,11 +1679,11 @@ async function scanNow() {
 
 async function toggleSchedule() {
   const r = await post("/api/schedule", {install: !state.setup.schedule});
-  if (r && r.message) alert(r.message);
+  if (r && r.message) toast(r.message, 4500);
 }
 
 refresh();
-setInterval(refresh, 5000);
+setInterval(() => { if (!anyEditorOpen()) refresh(); }, 5000);
 </script>
 </body>
 </html>

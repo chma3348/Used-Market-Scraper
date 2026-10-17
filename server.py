@@ -15,7 +15,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -100,6 +100,32 @@ def _ai_status(config):
     return False, "AI screening: no Anthropic credentials"
 
 
+def _next_scan(config):
+    """Local clock time of the next scheduled scan, or None when paused.
+    Answers 'is this thing actually going to do anything?' without opening
+    GitHub."""
+    if config.get("paused"):
+        return None
+    times = config.get("run_times")
+    if not times:
+        runs = max(1, min(24, int(config.get("runs_per_day", 4))))
+        times = [f"{h:02d}:00" for h in
+                 ([9] if runs == 1 else
+                  sorted({round(9 + i * (12 / (runs - 1))) for i in range(runs)}))]
+    try:
+        entries = dealfinder.parse_run_times(times)
+    except ValueError:
+        return None
+    now = datetime.now()
+    for h, m in entries:
+        when = now.replace(hour=h, minute=m, second=0, microsecond=0)
+        if when > now:
+            return when.isoformat(timespec="minutes")
+    h, m = entries[0]
+    return (now.replace(hour=h, minute=m, second=0, microsecond=0)
+            + timedelta(days=1)).isoformat(timespec="minutes")
+
+
 def get_state():
     global scan_proc
     config = cfg()
@@ -141,6 +167,7 @@ def get_state():
             "ntfy_topic": config.get("notifications", {}).get("ntfy_topic", ""),
             "runs_per_day": config.get("runs_per_day", 4),
             "run_times": ", ".join(config.get("run_times", [])),
+            "next_scan": _next_scan(config),
             "github_token_tail": _tail(
                 config.get("github", {}).get("token", "")),
             "ai_provider": ("local" if config.get("local_ai", {}).get("enabled")
@@ -153,6 +180,9 @@ def get_state():
         "cloud": {
             "enabled": bool(config.get("cloud", {}).get("enabled")),
             "repo": config.get("cloud", {}).get("repo", ""),
+            # last run is read from GitHub; cached briefly so the 5s dashboard
+            # refresh doesn't spend an API call every tick
+            "status": _cloud_status_cached(config),
         },
     }
 
@@ -266,6 +296,19 @@ def act_set(body):
             search["include_auctions"] = True
         else:
             search.pop("include_auctions", None)
+    if "sources" in body:
+        if body["sources"] in (["ebay"], ["craigslist"]):
+            search["sources"] = body["sources"]
+        else:
+            search.pop("sources", None)   # both marketplaces
+    if "heartbeat" in body:
+        # "off" | "daily" | "scan" - a quiet ping so a patient search still
+        # shows signs of life, with the cheapest seen so you learn whether
+        # your target price is realistic
+        if body["heartbeat"] in ("daily", "scan"):
+            search["heartbeat"] = body["heartbeat"]
+        else:
+            search.pop("heartbeat", None)
     save(config)
     maybe_sync_cloud(config)
     return {"ok": True}
@@ -307,6 +350,14 @@ def act_price(body):
     if guidance:
         result["variant_info"] = guidance
     return result
+DEFAULT_CLOUD_REPO = "chma3348/Used-Market-Scraper"
+CLOUD_SEARCHES_PATH = "cloud/searches.json"
+CLOUD_WORKFLOW_PATH = ".github/workflows/scan.yml"
+# Local copy of that workflow: the dashboard rewrites only its cron
+# block, so the scan-time pickers stay the single source of truth.
+WORKFLOW_PATH = os.path.join(PROJECT_DIR, CLOUD_WORKFLOW_PATH)
+
+
 def _gh(config, method, path, body=None):
     """One GitHub REST API call. Returns (status, parsed_json)."""
     token = config.get("github", {}).get("token", "")
@@ -361,29 +412,18 @@ def _gh_set_secret(config, repo, name, value):
 
 
 def cloud_config(config, paused=None):
-    """The sanitized config the cloud runner gets: searches, no credentials
-    (those arrive as GitHub Secrets), Craigslist off."""
+    """The file the GitHub runner reads: searches and non-secret settings.
+    Credentials never appear here - they live only in GitHub Secrets."""
     return {
-        "notifications": {"ntfy_topic": ""},
-        "ebay": {"client_id": "", "client_secret": "",
-                 "marketplace": config.get("ebay", {}).get("marketplace",
+        "ebay": {"marketplace": config.get("ebay", {}).get("marketplace",
                                                            "EBAY_US")},
-        "anthropic": {"api_key": "",
-                      "model": config.get("anthropic", {}).get(
-                          "model", "claude-haiku-4-5")},
-        "craigslist": {"site": "CHANGE_ME"},
+        "craigslist": {"site": config.get("craigslist", {}).get("site", "")},
         "deal_discount": config.get("deal_discount", 0.25),
         "history_days": config.get("history_days", 14),
         "auction_max_hours": config.get("auction_max_hours", 24),
         "paused": config.get("paused", False) if paused is None else paused,
         "searches": config.get("searches", []),
     }
-
-
-# The scheduled scan now lives in this repo at .github/workflows/scan.yml and
-# is edited there, not generated. This helper only recomputes the cron lines
-# so the dashboard's scan-time pickers can be mirrored into it.
-WORKFLOW_PATH = os.path.join(PROJECT_DIR, ".github", "workflows", "scan.yml")
 
 
 def _workflow_yaml(config):
@@ -413,27 +453,47 @@ def _workflow_yaml(config):
 
 
 def _cloud_secrets(config):
+    """Secrets the scan workflow needs. Screening runs on the Claude Code
+    OAuth token (subscription billing), so no API key is pushed."""
     return {
         "EBAY_CLIENT_ID": config.get("ebay", {}).get("client_id", ""),
         "EBAY_CLIENT_SECRET": config.get("ebay", {}).get("client_secret", ""),
-        "ANTHROPIC_API_KEY": config.get("anthropic", {}).get("api_key", ""),
         "NTFY_TOPIC": config.get("notifications", {}).get("ntfy_topic", ""),
     }
 
 
-def sync_cloud(config, include_secrets=False):
-    """Push the current searches (and optionally refreshed secrets) to the
-    cloud repo. Call only when cloud.enabled."""
-    repo = config["cloud"]["repo"]
-    _gh_put_file(config, repo, "config.json",
-                 (json.dumps(cloud_config(config), indent=2) + "\n").encode(),
-                 "sync searches")
-    _gh_put_file(config, repo, ".github/workflows/scan.yml",
-                 _workflow_yaml(config).encode(), "sync schedule")
+def sync_cloud(config, include_secrets=False, repo=None):
+    """Push the current searches (and optionally the secrets and schedule) to
+    the scan repo. `repo` is passed explicitly during first-time setup, before
+    config["cloud"] exists."""
+    repo = repo or config["cloud"]["repo"]
+    _gh_put_file(config, repo, CLOUD_SEARCHES_PATH,
+                 (json.dumps(cloud_config(config), indent=1) + "\n").encode(),
+                 "dashboard: sync searches")
+    # The workflow file is only rewritten when the schedule actually changed,
+    # because editing it needs the token's Workflows permission and we would
+    # rather fail loudly on that than silently on every search edit.
+    yaml = _workflow_yaml(config)
+    if yaml:
+        try:
+            _gh_put_file(config, repo, CLOUD_WORKFLOW_PATH, yaml.encode(),
+                         "dashboard: sync schedule")
+        except RuntimeError as e:
+            if "workflow" not in str(e).lower():
+                raise
+            print(f"[cloud] schedule not synced (token lacks Workflows): {e}")
     if include_secrets:
+        # Optional: most tokens are scoped Contents+Actions+Workflows only,
+        # and the secrets are usually set once by hand in GitHub's UI. A 403
+        # here must not fail an otherwise-good search sync.
         for name, value in _cloud_secrets(config).items():
-            if value:
+            if not value:
+                continue
+            try:
                 _gh_set_secret(config, repo, name, value)
+            except Exception as e:
+                print(f"[cloud] secret {name} not pushed ({e}); "
+                      "set it in GitHub's UI instead")
 
 
 def maybe_sync_cloud(config):
@@ -447,15 +507,17 @@ def maybe_sync_cloud(config):
 
 
 def act_cloud_setup(body):
+    """Connect the dashboard to an existing scan repo. The repo and its
+    workflow are checked in; this only verifies access and pushes searches."""
     config = cfg()
     if body.get("disable"):
         if config.get("cloud", {}).get("enabled"):
             try:
                 _gh_put_file(
-                    config, config["cloud"]["repo"], "config.json",
-                    (json.dumps(cloud_config(config, paused=True), indent=2)
+                    config, config["cloud"]["repo"], CLOUD_SEARCHES_PATH,
+                    (json.dumps(cloud_config(config, paused=True), indent=1)
                      + "\n").encode(),
-                    "cloud watcher disabled from the dashboard")
+                    "dashboard: pause scanning")
             except Exception as e:
                 print(f"[cloud] pause push failed: {e}")
             config["cloud"]["enabled"] = False
@@ -465,49 +527,118 @@ def act_cloud_setup(body):
     token = config.get("github", {}).get("token", "")
     if not token:
         return {"error": "Paste your GitHub token in Settings first, then Save."}
-    status, user = _gh(config, "GET", "/user")
+    repo = (body.get("repo") or config.get("cloud", {}).get("repo")
+            or DEFAULT_CLOUD_REPO)
+    status, info = _gh(config, "GET", f"/repos/{repo}")
+    if status == 404:
+        return {"error": f"Can't see {repo}. Check the repo name, and that the "
+                         "token is scoped to it with Contents read & write."}
     if status != 200:
-        return {"error": "GitHub rejected the token - regenerate it and check "
-                         "its permissions (Administration, Contents, Secrets, "
-                         "Actions, Workflows: read & write)."}
-    repo = f"{user['login']}/dealfinder-cloud"
-    status, resp = _gh(config, "POST", "/user/repos",
-                       {"name": "dealfinder-cloud", "private": True,
-                        "auto_init": True,
-                        "description": "DealFinder cloud watcher (auto-managed "
-                                       "- edit via the DealFinder app)"})
-    if status == 201:
-        time.sleep(2)  # let GitHub finish creating the main branch
-    elif status != 422:  # 422 = already exists, which is fine
-        return {"error": f"Couldn't create the repo ({status}): "
-                         f"{resp.get('message')}"}
+        return {"error": f"GitHub rejected the token ({status}): "
+                         f"{info.get('message', '')}"}
+    status, wf = _gh(config, "GET",
+                     f"/repos/{repo}/contents/{CLOUD_WORKFLOW_PATH}?ref=main")
+    if status != 200:
+        return {"error": f"{repo} has no {CLOUD_WORKFLOW_PATH}. Push the "
+                         "DealFinder repo there first."}
     try:
-        for fname in CLOUD_CODE_FILES:
-            with open(os.path.join(PROJECT_DIR, fname), "rb") as f:
-                _gh_put_file(config, repo, fname, f.read(), "dealfinder code")
-        _gh_put_file(config, repo, "config.json",
-                     (json.dumps(cloud_config(config), indent=2) + "\n").encode(),
-                     "initial searches")
-        _gh_put_file(config, repo, ".github/workflows/scan.yml",
-                     _workflow_yaml(config).encode(), "scan schedule")
-        for name, value in _cloud_secrets(config).items():
-            if value:
-                _gh_set_secret(config, repo, name, value)
-    except RuntimeError as e:
-        if "workflow" in str(e).lower():
-            return {"error": "GitHub blocked the schedule file: the token also "
-                             "needs the 'Workflows' repository permission "
-                             "(read & write). Add it to the token and click "
-                             "Set up again."}
+        sync_cloud(config, include_secrets=bool(body.get("push_secrets")),
+                   repo=repo)
+    except Exception as e:
         return {"error": str(e)}
     config.setdefault("cloud", {})
-    config["cloud"]["enabled"] = True
-    config["cloud"]["repo"] = repo
+    config["cloud"].update({"enabled": True, "repo": repo})
     save(config)
-    _gh(config, "POST", f"/repos/{repo}/actions/workflows/scan.yml/dispatches",
-        {"ref": "main"})
     return {"ok": True, "repo": repo,
             "url": f"https://github.com/{repo}/actions"}
+
+
+def act_cloud_run(body):
+    """Fire a scan right now instead of waiting for the schedule."""
+    config = cfg()
+    cloud = config.get("cloud", {})
+    if not cloud.get("enabled"):
+        return {"error": "Cloud scanning isn't connected yet."}
+    try:
+        sync_cloud(config)
+    except Exception as e:
+        return {"error": f"Couldn't sync before running: {e}"}
+    status, resp = _gh(
+        config, "POST",
+        f"/repos/{cloud['repo']}/actions/workflows/scan.yml/dispatches",
+        {"ref": "main"})
+    if status not in (201, 204):
+        return {"error": f"GitHub refused to start the scan ({status}): "
+                         f"{resp.get('message', '')}. The token needs Actions "
+                         "read & write."}
+    return {"ok": True, "url": f"https://github.com/{cloud['repo']}/actions"}
+
+
+_CLOUD_STATUS_CACHE = {"at": 0.0, "value": None}
+
+
+def _cloud_status_cached(config, ttl=60):
+    if not config.get("cloud", {}).get("enabled"):
+        return None
+    now = time.time()
+    if now - _CLOUD_STATUS_CACHE["at"] < ttl:
+        return _CLOUD_STATUS_CACHE["value"]
+    _CLOUD_STATUS_CACHE.update({"at": now, "value": cloud_status(config)})
+    return _CLOUD_STATUS_CACHE["value"]
+
+
+def cloud_status(config):
+    """Last scan outcome, read back from GitHub. Never raises - the dashboard
+    renders whatever it gets."""
+    cloud = config.get("cloud", {})
+    if not (cloud.get("enabled") and config.get("github", {}).get("token")):
+        return None
+    repo = cloud["repo"]
+    out = {"repo": repo, "url": f"https://github.com/{repo}/actions"}
+    try:
+        status, runs = _gh(
+            config, "GET",
+            f"/repos/{repo}/actions/workflows/scan.yml/runs?per_page=1")
+        if status == 200 and runs.get("workflow_runs"):
+            r = runs["workflow_runs"][0]
+            out.update({
+                "last_run": r.get("run_started_at") or r.get("created_at"),
+                "state": r.get("status"),
+                "result": r.get("conclusion"),
+                "run_url": r.get("html_url"),
+            })
+    except Exception as e:
+        out["error"] = str(e)
+    return out
+
+
+def act_cloud_results(body):
+    """Pull the newest scan write-ups out of the repo so cloud finds show up
+    in the dashboard next to locally-run checks."""
+    config = cfg()
+    cloud = config.get("cloud", {})
+    if not cloud.get("enabled"):
+        return {"error": "Cloud scanning isn't connected yet."}
+    repo = cloud["repo"]
+    status, listing = _gh(config, "GET",
+                          f"/repos/{repo}/contents/history?ref=main")
+    if status != 200:
+        return {"error": f"Couldn't read history/ from {repo} ({status})."}
+    scans = sorted((f for f in listing if f["name"].endswith("_cloud-scan.md")),
+                   key=lambda f: f["name"], reverse=True)[:10]
+    pulled = []
+    for f in scans:
+        local = os.path.join(PROJECT_DIR, "history", f["name"])
+        if os.path.exists(local):
+            continue
+        status, blob = _gh(config, "GET",
+                           f"/repos/{repo}/contents/history/{f['name']}?ref=main")
+        if status == 200 and blob.get("content"):
+            text = base64.b64decode(blob["content"]).decode("utf-8", "replace")
+            with open(local, "w") as fh:
+                fh.write(text)
+            pulled.append(f["name"])
+    return {"ok": True, "pulled": pulled, "available": len(scans)}
 
 
 def act_cloud_sync(body):
@@ -515,7 +646,7 @@ def act_cloud_sync(body):
     if not config.get("cloud", {}).get("enabled"):
         return {"error": "Cloud watcher isn't set up yet."}
     try:
-        sync_cloud(config, include_secrets=True)
+        sync_cloud(config)          # searches + schedule; secrets stay manual
     except Exception as e:
         return {"error": f"Sync failed: {e}"}
     return {"ok": True}
@@ -764,6 +895,8 @@ ACTIONS = {
     "/api/awake": act_awake,
     "/api/cloud-setup": act_cloud_setup,
     "/api/cloud-sync": act_cloud_sync,
+    "/api/cloud-run": act_cloud_run,
+    "/api/cloud-results": act_cloud_results,
 }
 
 

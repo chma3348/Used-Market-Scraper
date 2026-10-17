@@ -68,8 +68,10 @@ def main():
         rejects = (profile.get("reject_keywords")
                    or dealfinder.compile_profile(profile, query)[0])
 
+        # honour a search pinned to one marketplace in the dashboard
+        want = search.get("sources") or ["ebay", "craigslist"]
         listings = []
-        if token:
+        if token and "ebay" in want:
             queries = search.get("queries") or [query]
             for q in queries[:6]:
                 try:
@@ -82,7 +84,7 @@ def main():
                         limit=200, pages=2, sort="newlyListed")
                 except Exception as e:
                     print(f"[fetch] {name}: eBay '{q}' failed: {e}")
-        if cl_site:
+        if cl_site and "craigslist" in want:
             try:
                 listings += sources.fetch_craigslist(
                     cl_site, query, search.get("min_price"),
@@ -119,6 +121,7 @@ def main():
             "condition": search.get("condition", "working"),
             "notes": search.get("notes", ""),
             "alert_under": search.get("alert_under"),
+            "heartbeat": search.get("heartbeat"),
             "auction_max_hours": search.get(
                 "auction_max_hours", searches_cfg.get("auction_max_hours", 24)),
             "fetched": len(uniq),
