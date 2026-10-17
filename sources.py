@@ -38,6 +38,17 @@ class Listing:
     extra: dict = field(default_factory=dict)
 
 
+def item_url(url):
+    """eBay's itemWebUrl carries a long ?_skw=...&hash=item...:g:... suffix.
+
+    It is search-context tracking, not part of the address: the bare
+    /itm/<id> form resolves to the same page, survives being pasted into a
+    notification, and does not land on an error page once that search context
+    has gone stale."""
+    m = re.match(r"(https?://(?:www\.)?ebay\.[a-z.]+/itm/\d+)", url or "")
+    return m.group(1) if m else (url or "")
+
+
 def _http_get(url, headers=None, timeout=30):
     req = urllib.request.Request(url, headers=headers or {})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -141,7 +152,7 @@ def fetch_ebay(token: str, query: str, min_price: Optional[float],
             source="ebay",
             title=item.get("title", ""),
             price=price,
-            url=item.get("itemWebUrl", ""),
+            url=item_url(item.get("itemWebUrl", "")),
             condition=item.get("condition", ""),
             extra={
                 "buying_options": opts,

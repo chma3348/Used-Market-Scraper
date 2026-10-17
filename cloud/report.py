@@ -46,6 +46,61 @@ def _first_run_of_day(name, stamp):
     return True
 
 
+def clean_url(url):
+    """Strip eBay's tracking suffix (?_skw=...&hash=item...:g:...).
+
+    Two reasons: it triples the length of a link that has to be readable in a
+    notification body, and those stale search-context links can land on an
+    error page instead of the item. The bare /itm/<id> form always resolves."""
+    m = re.match(r"(https?://(?:www\.)?ebay\.[a-z.]+/itm/\d+)", url or "")
+    return m.group(1) if m else (url or "")
+
+
+def find_list(entry, listings):
+    """The genuinely-matching listings for one search, cheapest first.
+
+    Phase 2 used to hand back only `cheapest`, so accept that shape too - a
+    scan screened by the old skill should still report something."""
+    raw = entry.get("finds")
+    if raw is None:
+        c = entry.get("cheapest") or {}
+        raw = [c] if c.get("i") is not None else []
+    out, taken = [], set()
+    for f in raw or []:
+        l = listings.get(f.get("i"))
+        if l and l["id"] not in taken:
+            taken.add(l["id"])
+            out.append((l, (f.get("what") or "").strip()))
+    out.sort(key=lambda t: t[0].get("price") or 0)
+    return out
+
+
+def list_body(finds, limit=8):
+    """A numbered, tappable list - the thing you actually scroll on a phone."""
+    lines = []
+    for n, (l, what) in enumerate(finds[:limit], 1):
+        head = f"{n}. ${l['price']:,.0f}"
+        if what:
+            head += f" \u00b7 {what}"
+        if l.get("auction") and l.get("ends"):
+            head += f" (bid, ends {l['ends'][5:10]})"
+        lines.append(head)
+        lines.append("   " + clean_url(l["url"]))
+    if len(finds) > limit:
+        lines.append(f"...and {len(finds) - limit} more in the report.")
+    return "\n".join(lines)
+
+
+def report_url(slug):
+    """Where the full write-up for this run lives, when running in Actions."""
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    if not repo:
+        return None
+    branch = os.environ.get("GITHUB_REF_NAME") or "main"
+    return (f"https://github.com/{repo}/blob/{branch}/"
+            f"history/{slug}_cloud-scan.md")
+
+
 def main():
     with open(os.path.join(WORK, "candidates.json")) as f:
         cand = json.load(f)
@@ -74,6 +129,8 @@ def main():
     seen = list(seen_doc.get("ids", []))
 
     sent, heartbeats = 0, 0
+    slug = re.sub(r"[^a-z0-9]+", "-", stamp.lower())[:16].strip("-")
+    full_url = report_url(slug)
     lines = [f"# Scheduled scan - {stamp}", ""]
     for entry in results.get("searches", []):
         name = entry.get("name", "")
@@ -83,60 +140,100 @@ def main():
             continue
         listings = {l["i"]: l for l in src["listings"]}
         deals = [d for d in entry.get("deals", []) if d.get("i") in listings]
-        lines.append(f"## {name} - {len(deals)} deal(s) of "
-                     f"{len(src['listings'])} screened")
+        finds = find_list(entry, listings)
+        deal_ids = {listings[d["i"]]["id"] for d in deals}
+        lines.append(f"## {name} - {len(deals)} deal(s), {len(finds)} genuine "
+                     f"match(es) of {len(src['listings'])} screened")
         if entry.get("note"):
             lines.append(f"_{entry['note']}_")
+        lines.append("")
+
+        # The browsable list: every real match, cheapest first, deals marked.
+        # This is what the phone notification links back to.
+        if finds:
+            for n, (l, what) in enumerate(finds, 1):
+                mark = " **DEAL**" if l["id"] in deal_ids else ""
+                bits = [f"{n}. **${l['price']:,.0f}**{mark} "
+                        f"[{l['title']}]({clean_url(l['url'])})"]
+                tail = []
+                if what:
+                    tail.append(what)
+                if l.get("auction") and l.get("ends"):
+                    tail.append(f"auction ends {l['ends'][:16].replace('T', ' ')}")
+                if tail:
+                    bits.append("   - " + " \u00b7 ".join(tail))
+                lines.extend(bits)
+            lines.append("")
+
         for d in deals:
             l = listings[d["i"]]
             reason = d.get("reason", "")
-            lines.append(f"- **${l['price']:,.0f}** {l['title']}")
-            lines.append(f"  {l['url']}")
-            lines.append(f"  {reason}")
+            lines.append(f"- why #{d['i']} is a deal: {reason}")
             if topic:
                 # A phone notification is a glance, not a report. The full
-                # reasoning already lives in the history file below.
+                # reasoning already lives in the history file above.
                 short = reason.split(" [screened")[0].strip()
                 if len(short) > 100:
                     cut = short[:100].rsplit(" ", 1)[0]
-                    short = cut + "…"
+                    short = cut + "\u2026"
                 body = f"${l['price']:,.0f}"
                 if l.get("auction") and l.get("ends"):
-                    body += f" · auction ends {l['ends'][11:16]} {l['ends'][5:10]}"
+                    body += f" \u00b7 auction ends {l['ends'][11:16]} {l['ends'][5:10]}"
                 if short:
-                    body += f" — {short}"
+                    body += f" \u2014 {short}"
+                others = [f for f in finds if f[0]["id"] != l["id"]]
+                if others:
+                    body += (f"\n\n{len(others)} other real match"
+                             f"{'es' if len(others) > 1 else ''} this scan:\n"
+                             + list_body(others, limit=5))
+                acts = [("Open listing", clean_url(l["url"]))]
+                if full_url:
+                    acts.append(("All finds" if len(finds) < 2
+                                 else f"All {len(finds)} finds", full_url))
                 try:
                     notify.send(topic, l["title"][:70], body,
-                                click_url=l["url"])
+                                click_url=clean_url(l["url"]), actions=acts)
                     sent += 1
                 except Exception as e:
                     print(f"[report] notify failed: {e}")
+        if deals:
+            lines.append("")
+
         # A patient search can go weeks without a hit. When asked, send a
-        # quiet low-priority ping with the cheapest thing seen, so the user
-        # knows it is alive and learns whether their target is realistic.
+        # quiet ping listing what IS out there, so the buyer can browse the
+        # real market instead of just being told "nothing yet".
         hb = src.get("heartbeat")
         if topic and not deals and hb in ("scan", "daily"):
             if hb != "daily" or _first_run_of_day(name, stamp):
-                # Report the cheapest GENUINE item, not the cheapest
-                # candidate: the raw pool is full of brochures and caps, and
-                # quoting those as "cheapest" is worse than saying nothing.
-                cheap = entry.get("cheapest") or {}
-                cl = listings.get(cheap.get("i")) if cheap else None
                 n = len(src["listings"])
-                if cl:
-                    body = f"cheapest real one is ${cl['price']:,.0f}"
-                    if cheap.get("what"):
-                        body += f" — {cheap['what']}"
+                acts = []
+                if finds:
+                    cheapest = finds[0][0]
+                    title = (f"{name} \u2014 {len(finds)} found, "
+                             f"from ${cheapest['price']:,.0f}")
+                    body = list_body(finds)
                     if src.get("alert_under"):
-                        body += f" · you want under ${src['alert_under']:,.0f}"
-                    body += f"\n({n} listings checked)"
+                        body += (f"\n\nNone under your ${src['alert_under']:,.0f} "
+                                 f"alert yet \u2014 these are what the market "
+                                 f"looks like today.")
+                    for l, what in finds[:2]:
+                        label = f"${l['price']:,.0f} {what}".strip()
+                        if len(label) > 25:
+                            label = label[:25].rsplit(" ", 1)[0]
+                        acts.append((label, clean_url(l["url"])))
+                    if full_url:
+                        acts.append(("Full report", full_url))
                 else:
+                    title = f"{name} \u2014 still looking"
                     body = (f"{n} listings checked, none were actually a match"
                             if n else "nothing matched the filters")
+                    if full_url:
+                        acts.append(("Why nothing matched", full_url))
                 try:
-                    notify.send(topic, f"{name} — still looking", body,
-                                priority="low", tags="eyes",
-                                click_url=cl["url"] if cl else None)
+                    notify.send(topic, title, body, priority="low",
+                                tags="eyes", actions=acts or None,
+                                click_url=(clean_url(finds[0][0]["url"])
+                                           if finds else full_url))
                     heartbeats += 1
                 except Exception as e:
                     print(f"[report] heartbeat failed: {e}")
@@ -151,7 +248,6 @@ def main():
         json.dump(seen_doc, f, indent=1)
 
     os.makedirs(HISTORY, exist_ok=True)
-    slug = re.sub(r"[^a-z0-9]+", "-", stamp.lower())[:16].strip("-")
     with open(os.path.join(HISTORY, f"{slug}_cloud-scan.md"), "w") as f:
         f.write("\n".join(lines) + "\n")
     print(f"[report] {sent} deal alert(s), {heartbeats} heartbeat(s), "

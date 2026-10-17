@@ -23,7 +23,9 @@ judgement call that keyword matching cannot make.
     {
       "name": "<copy the search name exactly>",
       "note": "<one sentence on what this market looks like right now>",
-      "cheapest": {"i": 12, "what": "<3-6 words, e.g. 'F3 HP body, meter works'>"},
+      "finds": [
+        {"i": 12, "what": "<3-6 words, e.g. 'F3 HP body, meter works'>"}
+      ],
       "deals": [
         {"i": 7, "reason": "<ONE short clause, under 90 characters — this is read on a phone lock screen>"}
       ]
@@ -32,12 +34,19 @@ judgement call that keyword matching cannot make.
 }
 ```
 
-`cheapest` is the cheapest listing that is **genuinely the item being
-searched for** — the real thing, even when it is nowhere near a deal. It is
-what gets reported when there are no deals, so the buyer learns what the item
-actually costs today. Set it to `null` when not one listing in the batch is
-the real item; "we looked at 60 and none were even a Nikon F3" is useful and
-true, and is far better than quoting the price of a brochure.
+`finds` is **every listing that is genuinely the item being searched for**,
+cheapest first, up to 12 — the real thing, even when nowhere near a deal.
+This is the list the buyer browses on their phone, so it is the most
+important field here: a scan that flags no deals but returns eight real
+Nikon F3 bodies has still done its job, while one that returns an empty
+`finds` has shown the buyer nothing.
+
+Include a listing in `finds` when it is the right item in the right
+condition, whatever the price. Leave `finds` empty **only** when not one
+listing in the batch is the real thing — "we looked at 60 and none were even
+a Nikon F3" is useful and true, and far better than padding the list with
+brochures. Deals are a subset: anything you flag in `deals` must also appear
+in `finds`.
 
 Keep `reason` short. It becomes a push notification, so it must read at a
 glance: `"40mm GIII, $45 under the going rate"` — not a paragraph. Put the
