@@ -8,7 +8,7 @@
  "deal_discount": 0.25,
  "history_days": 14,
  "auction_max_hours": 24,
- "paused": false,
+ "paused": true,
  "searches": [
   {
    "name": "Canonet GIII QL17",
