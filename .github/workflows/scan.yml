@@ -5,7 +5,7 @@ name: DealFinder scan
 # a run by several minutes under load.
 on:
   schedule:
-    - cron: "0 15 * * *"
+    - cron: "0 13 * * *"
   workflow_dispatch:
 
 concurrency:
