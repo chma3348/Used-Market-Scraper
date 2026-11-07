@@ -8,6 +8,11 @@ priced well below market — so you can message the seller fast.
 
 Facebook Marketplace is handled separately in **semi-auto mode** (see below).
 
+For the other direction — what your own gear is worth — see [**gear/**](gear/):
+a [selling price sheet](gear/selling/price-sheet.md), a
+[sold log](gear/selling/sold-log.md), and the
+[method](gear/selling/method.md) behind the numbers.
+
 ---
 
 ## One-time setup (about 15 minutes)
