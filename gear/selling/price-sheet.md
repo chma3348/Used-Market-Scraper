@@ -1,6 +1,6 @@
 # Selling price sheet
 
-Built from ~2,100 live eBay listings fetched 2026-11-04/06 via the Browse API
+Built from ~2,100 live eBay listings fetched 2026-11-04/10 via the Browse API
 and screened by hand, cross-checked against CameraWorth sold data.
 
 → [**method.md**](method.md) for how these were derived and when to refresh them.
@@ -25,10 +25,10 @@ you even while still reading as a discount to the buyer.
 
 | Item | Condition | eBay list | Realistic | **Net** | **Local** |
 |---|---|---|---|---|---|
-| **F3 body** | brassed, shutter OK, not film-tested | $400 | $350–400 | $329 | $350 *(take $300)* |
-| ├ **MD-4 motor drive** | working | $80 | $65–80 | $55 | $70 |
-| └ **SB-16 speedlight** | working | $40 | $30–40 | $23 | $35 |
-| *F3 as one kit* | | *$500* | *$450–500* | *$411* | *$450 (take $375)* |
+| **F3 body** | brassed, shutter OK, not film-tested | $375 | $320–360 | $307 | $330 *(take $290)* |
+| ├ **MD-4 motor drive** | working | $75 | $60–75 | $51 | $65 |
+| └ **SB-16 speedlight** | working | $38 | $30–38 | $22 | $33 |
+| *F3 as one kit — not recommended* | | *$450* | *$390–440* | *$368* | *$400 (take $350)* |
 | **Nikon F Photomic FTN** | film-tested, working, + leather case | $235 | $190–230 | $185 | $200 *(take $165)* |
 | **50mm f/1.4 pre-AI** | good for age | $105 | $85–105 | $80 | $90 *(take $70)* |
 | **50mm f/1.8 AI-S** — *pancake* | good, not mint | $160 | $130–160 | $128 | $140 *(take $115)* |
@@ -87,10 +87,10 @@ naming, which is why it looks invisible online:
 
 | | list | **you net** |
 |---|---|---|
-| Everything, sold as 12 listings | $1,690 | **$1,299** |
-| …if the 50/1.8 is the standard barrel | $1,625 | $1,242 |
-| …if the F3 turns out to be an HP | $1,760 | $1,359 |
-| …if the Copal shutter is diaphragm-less | $1,650 | $1,265 |
+| Everything, sold as 12 listings | $1,658 | **$1,272** |
+| …if the 50/1.8 is the standard barrel | $1,593 | $1,215 |
+| …if the F3 turns out to be an HP | $1,728 | $1,332 |
+| …if the Copal shutter is diaphragm-less | $1,618 | $1,238 |
 
 eBay fees and postage swallow **$359, about 23%**. That is the number to keep in
 mind every time a local buyer offers cash.
@@ -130,9 +130,15 @@ locally for cash, or bundle them.
 
 ## Before you list
 
-- **Check the F3's LCD.** Fade or bleed in the finder readout is the single
-  biggest F3 value killer — one on the board is discounted to $330 for exactly
-  that. Clean? Say so prominently. Not clean? Disclose it; buyers ask.
+- **Check the F3's LCD first — it is worth more than the film test.** Two
+  listings bracket the entire market: "Read LCD Defect" at $330 against "Film
+  Tested, Bright LCD, No LCD bleed" at $449. A $119 spread, most of it the LCD.
+  Bright with no edge bleed? Put *"bright LCD, no bleed"* in the title. Faded?
+  Disclose it and expect the bottom of the range.
+- **Check what the winder actually is.** The F3's only winder is the MD-4
+  motor drive. Anything labelled AW-1, MD-E or MD-12 belongs to a different
+  body — the MD-E is the Nikon EM's — and will not fit the F3 at all. That is
+  a $75 item against a $25 one.
 - **Confirm which F3 you have.** The HP (high-eyepoint) finder is worth $50–80
   more than the eye-level. Prices above assume eye-level.
 - **Confirm which 50mm f/1.8 AI-S you have.** This is a 2× spread. The compact
@@ -151,6 +157,20 @@ Tamron 20-40mm is the EF-mount version.
 - CameraWorth — [Nikon F3](https://www.cameraworth.com/n/nikon/f3/), [Nikon F](https://www.cameraworth.com/n/nikon/f/)
 - [KEH — Nikon F3HP](https://www.keh.com/shop/nikon-f3hp-35mm-slr-camera.html), [KEH — Tamron 20-40mm EF](https://www.keh.com/shop/tamron-20-40mm-f-2-7-3-5-aspherical-if-sp-166d-lens-for-canon-ef-mount-77.html)
 - [Lenstip — Tamron SP AF 20-40mm specs](https://lenstip.com/629-Tamron_SP_AF_20-40_mm_f_2.7-3.5_Aspherical_(IF)-lens_specifications.html)
+
+---
+
+## Revisions
+
+- **2026-11-10** — F3 body $400 → $375, MD-4 $80 → $75, flash $40 → $38.
+  Re-fetched and segmented the board by claimed condition rather than lumping
+  it: graded "MINT/Exc+" bodies (n=99, p25 $470) are a different market from
+  honest untested ones (n=11, p25 $430), and the untested bodies that actually
+  look movable cluster at $350–390 — one of them an HP at $350. The original
+  $400 sat above that cluster. Kit price cut to $450 after a $300 listing for
+  "F3 body + SB-16 flash and more" turned up, confirming kits carry no premium.
+- **2026-11-07** — Added the Polaroid Copal / Tominon set.
+- **2026-11-05** — First version, 11 items.
 
 ---
 
